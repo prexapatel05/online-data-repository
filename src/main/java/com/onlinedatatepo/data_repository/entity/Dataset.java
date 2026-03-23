@@ -39,8 +39,8 @@ public class Dataset {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "page", columnDefinition = "TEXT")
-    private String page;
+    @Column(name = "tag", columnDefinition = "TEXT")
+    private String tag;
 
     @Column(name = "access_level", nullable = false)
     @Enumerated(EnumType.STRING)

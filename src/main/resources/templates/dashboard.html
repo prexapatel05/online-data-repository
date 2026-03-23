@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - DataHub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <div th:replace="~{fragments/sidebar :: sidebar('dashboard')}"></div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div th:replace="~{fragments/header :: header}"></div>
+
+            <div class="page-content">
+                <!-- Success/Error Messages -->
+                <div th:if="${success}" class="alert alert-success">
+                    <span th:text="${success}"></span>
+                </div>
+                <div th:if="${error}" class="alert alert-error">
+                    <span th:text="${error}"></span>
+                </div>
+
+                <!-- Explore Banner with Gradient -->
+                <div class="explore-banner">
+                    <div class="explore-header">
+                        <h1>Explore Datasets !!!</h1>
+                        <p>Discover, analyze, and share quality research data. Join our collaborative community</p>
+                    </div>
+
+                    <!-- Search Bar -->
+                    <div class="search-bar">
+                        <input type="text" placeholder="Search datasets, researchers, topics...">
+                        <button class="btn-search">
+                            <i data-lucide="search"></i> Search
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <a th:href="@{/upload}" class="btn-new-dataset">
+                        <i data-lucide="plus"></i> New Dataset
+                    </a>
+                    <button class="btn-browse">Browse All Datasets</button>
+                </div>
+
+                <!-- Category Tabs -->
+                <div class="category-tabs">
+                    <span class="category-tab active">All datasets</span>
+                    <span class="category-tab">Computer Science</span>
+                    <span class="category-tab">Healthcare</span>
+                    <span class="category-tab">Climate</span>
+                    <span class="category-tab">Economics</span>
+                    <span class="category-tab">Education</span>
+                    <span class="category-tab">Social Science</span>
+                </div>
+
+                <!-- Trending Datasets -->
+                <div class="section-header">
+                    <h2><i data-lucide="trending-up" class="section-icon"></i> Trending Datasets</h2>
+                    <a href="#">See All <i data-lucide="arrow-right"></i></a>
+                </div>
+
+                <div class="dataset-grid">
+                    <!-- Dynamic dataset cards from DB -->
+                    <div th:each="dataset : ${trendingDatasets}" class="dataset-card">
+                        <div class="dataset-card-header">
+                            <h3 th:text="${dataset.name}">Dataset Name</h3>
+                            <span class="badge badge-default" th:text="${dataset.tag != null ? dataset.tag.split(',')[0].trim() : dataset.accessLevel}">Category</span>
+                        </div>
+                        <p th:text="${dataset.description != null ? (dataset.description.length() > 100 ? dataset.description.substring(0, 100) + '...' : dataset.description) : 'No description available'}">
+                            Dataset description goes here...
+                        </p>
+                        <div class="dataset-tags" th:if="${dataset.tag != null}">
+                            <span class="tag" th:each="t, iter : ${dataset.tag.split(',')}" th:if="${iter.index < 3}" th:text="${t.trim()}">tag</span>
+                        </div>
+                        <div class="dataset-card-footer">
+                            <div class="dataset-stats">
+                                <span><i data-lucide="download"></i> --</span>
+                                <span><i data-lucide="hard-drive"></i> --</span>
+                                <span><i data-lucide="calendar"></i> <span th:text="${#temporals.format(dataset.createdAt, 'MMM dd')}">Jan 01</span></span>
+                            </div>
+                            <span class="dataset-author">by <strong th:text="${dataset.user.fullName != null ? dataset.user.fullName : dataset.user.username}">Author</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Placeholder when no datasets -->
+                    <div th:if="${#lists.isEmpty(trendingDatasets)}" class="dataset-card" style="grid-column: 1/-1; text-align:center; padding:40px;">
+                        <p style="color:#6b7c8a;">No datasets yet. Be the first to <a th:href="@{/upload}" style="color:#0d9488; font-weight:600;">upload a dataset</a>!</p>
+                    </div>
+                </div>
+
+                <!-- Bottom Sections -->
+                <div class="bottom-sections">
+                    <!-- Recent Activity -->
+                    <div class="section-card">
+                        <h3>Recent Activity</h3>
+                        <ul class="activity-list">
+                            <li th:each="log : ${recentActivity}" class="activity-item">
+                                <div class="activity-avatar blue"
+                                     th:text="${log.user != null ? log.user.fullName?.substring(0,1)?.toUpperCase() : 'S'}"></div>
+                                <div>
+                                    <div class="activity-text">
+                                        <strong th:text="${log.user != null ? log.user.fullName : 'System'}"></strong>
+                                        <span th:text="${log.action}"> performed action</span>
+                                    </div>
+                                    <span class="activity-time" th:text="${#temporals.format(log.timestamp, 'MMM dd, HH:mm')}">Mar 01, 12:00</span>
+                                </div>
+                            </li>
+                            <li th:if="${#lists.isEmpty(recentActivity)}" class="activity-item">
+                                <div class="activity-text" style="color:#888;">No recent activity yet.</div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Quick Links -->
+                    <div class="section-card">
+                        <h3>Quick Links</h3>
+                        <a th:href="@{/upload}" class="quick-link">
+                            <div class="quick-link-icon"><i data-lucide="upload-cloud"></i></div>
+                            <div class="quick-link-info">
+                                <h4>Upload Dataset</h4>
+                                <p>Share your research data</p>
+                            </div>
+                            <span class="quick-link-arrow"><i data-lucide="chevron-right"></i></span>
+                        </a>
+                        <a href="#" class="quick-link">
+                            <div class="quick-link-icon"><i data-lucide="file-bar-chart"></i></div>
+                            <div class="quick-link-info">
+                                <h4>View Reports</h4>
+                                <p>Generate insights</p>
+                            </div>
+                            <span class="quick-link-arrow"><i data-lucide="chevron-right"></i></span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script th:src="@{/js/main.js}"></script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

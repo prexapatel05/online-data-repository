@@ -1,0 +1,51 @@
+<!-- Sidebar Fragment -->
+<div th:fragment="sidebar(activePage)" class="sidebar">
+    <div class="sidebar-logo">
+        <div class="logo-icon"><i data-lucide="database"></i></div>
+        <div>
+            <span class="logo-text">DataHub</span>
+            <span class="logo-sub">Research Platform</span>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <a th:href="@{/dashboard}" th:classappend="${activePage == 'dashboard'} ? 'active' : ''">
+            <i data-lucide="layout-dashboard" class="nav-icon"></i> Dashboard
+        </a>
+        <a th:href="@{/dashboard}" th:classappend="${activePage == 'datasets'} ? 'active' : ''">
+            <i data-lucide="folder-open" class="nav-icon"></i> Datasets
+        </a>
+        <a th:href="@{/upload}" th:classappend="${activePage == 'upload'} ? 'active' : ''">
+            <i data-lucide="upload-cloud" class="nav-icon"></i> Upload Dataset
+        </a>
+        <a href="#" th:classappend="${activePage == 'query'} ? 'active' : ''">
+            <i data-lucide="search" class="nav-icon"></i> Query Builder
+        </a>
+        <a href="#" th:classappend="${activePage == 'reports'} ? 'active' : ''">
+            <i data-lucide="bar-chart-2" class="nav-icon"></i> Reports
+        </a>
+        <a href="#" th:classappend="${activePage == 'admin'} ? 'active' : ''">
+            <i data-lucide="shield" class="nav-icon"></i> Admin Panel
+        </a>
+        <a href="#" th:classappend="${activePage == 'settings'} ? 'active' : ''">
+            <i data-lucide="settings" class="nav-icon"></i> Settings
+        </a>
+    </nav>
+
+    <div class="sidebar-user">
+        <div class="avatar" th:text="${user != null ? user.fullName?.substring(0,1)?.toUpperCase() : 'U'}"></div>
+        <div class="user-info">
+            <div class="user-name" th:text="${user != null ? user.fullName : 'User'}"></div>
+            <div class="user-email" th:text="${user != null ? user.email : ''}"></div>
+        </div>
+    </div>
+
+    <div class="sidebar-logout">
+        <form th:action="@{/logout}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button type="submit" class="logout-btn">
+                <i data-lucide="log-out"></i> Logout
+            </button>
+        </form>
+    </div>
+</div>

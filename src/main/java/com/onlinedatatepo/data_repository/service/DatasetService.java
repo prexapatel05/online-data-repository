@@ -1,0 +1,56 @@
+package com.onlinedatatepo.data_repository.service;
+
+import com.onlinedatatepo.data_repository.entity.AccessLevel;
+import com.onlinedatatepo.data_repository.entity.Dataset;
+import com.onlinedatatepo.data_repository.entity.DatasetStatus;
+import com.onlinedatatepo.data_repository.entity.User;
+import com.onlinedatatepo.data_repository.repository.DatasetRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class DatasetService {
+
+    private final DatasetRepository datasetRepository;
+
+    public DatasetService(DatasetRepository datasetRepository) {
+        this.datasetRepository = datasetRepository;
+    }
+
+    public List<Dataset> getPublicVerifiedDatasets() {
+        return datasetRepository.findVerifiedDatasetsByAccessLevel(AccessLevel.PUBLIC);
+    }
+
+    public Page<Dataset> getDatasetsByUser(Integer userId, Pageable pageable) {
+        return datasetRepository.findByUser_UserId(userId, pageable);
+    }
+
+    public List<Dataset> getTrendingDatasets(int limit) {
+        Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return datasetRepository.findByAccessLevel(AccessLevel.PUBLIC, pageable).getContent();
+    }
+
+    public Dataset createDataset(String name, String description, String tag, AccessLevel accessLevel, User owner) {
+        Dataset dataset = new Dataset();
+        dataset.setName(name);
+        dataset.setDescription(description);
+        dataset.setTag(tag);
+        dataset.setAccessLevel(accessLevel);
+        dataset.setStatus(DatasetStatus.PENDING);
+        dataset.setUser(owner);
+        return datasetRepository.save(dataset);
+    }
+
+    public long countAllDatasets() {
+        return datasetRepository.count();
+    }
+
+    public long countByStatus(DatasetStatus status) {
+        return datasetRepository.countByStatus(status);
+    }
+}

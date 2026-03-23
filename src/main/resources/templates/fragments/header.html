@@ -1,0 +1,17 @@
+<!-- Header Fragment -->
+<div th:fragment="header" class="top-header">
+    <div class="search-box">
+        <i data-lucide="search" class="search-icon"></i>
+        <input type="text" placeholder="Search datasets...">
+    </div>
+    <div class="header-right">
+        <div class="notification-bell"><i data-lucide="bell"></i></div>
+        <div class="header-user">
+            <div class="avatar-sm" th:text="${user != null ? user.fullName?.substring(0,1)?.toUpperCase() : 'U'}"></div>
+            <div class="user-label">
+                <strong th:text="${user != null ? user.fullName : 'User'}"></strong>
+                <span th:text="${user != null ? user.role : ''}"></span>
+            </div>
+        </div>
+    </div>
+</div>

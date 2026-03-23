@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Dataset - DataHub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <div th:replace="~{fragments/sidebar :: sidebar('upload')}"></div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div th:replace="~{fragments/header :: header}"></div>
+
+            <div class="page-content">
+                <!-- Breadcrumb -->
+                <div class="breadcrumb">
+                    <a th:href="@{/dashboard}">Home</a>
+                    <i data-lucide="chevron-right" class="breadcrumb-sep"></i>
+                    <span>Upload Dataset</span>
+                </div>
+
+                <h1 class="page-title">Upload Dataset</h1>
+                <p class="page-subtitle">Upload and configure your research dataset in a few simple steps</p>
+
+                <!-- Success/Error Messages -->
+                <div th:if="${success}" class="alert alert-success">
+                    <span th:text="${success}"></span>
+                </div>
+                <div th:if="${error}" class="alert alert-error">
+                    <span th:text="${error}"></span>
+                </div>
+
+                <!-- Step Indicator -->
+                <div class="step-indicator">
+                    <div class="step active">
+                        <div class="step-circle"><i data-lucide="upload"></i></div>
+                        <span class="step-label">Upload File</span>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step">
+                        <div class="step-circle"><i data-lucide="file-spreadsheet"></i></div>
+                        <span class="step-label">Schema Preview</span>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step">
+                        <div class="step-circle"><i data-lucide="check-circle"></i></div>
+                        <span class="step-label">Meta Data</span>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step">
+                        <div class="step-circle"><i data-lucide="users"></i></div>
+                        <span class="step-label">Set Permissions</span>
+                    </div>
+                </div>
+
+                <!-- Upload Card -->
+                <div class="upload-card">
+                    <h3>Upload Your Dataset</h3>
+
+                    <form id="uploadForm" th:action="@{/upload}" method="post" enctype="multipart/form-data">
+                        <div class="drop-zone" id="dropZone">
+                            <div class=\"upload-icon\"><i data-lucide=\"upload\"></i></div>
+                            <p>Drop your file here or click to browse</p>
+                            <span class="supported-formats">Supported formats: CSV, TSV, Excel</span>
+                            <div class="file-selected" id="fileSelected" style="display:none;"></div>
+                        </div>
+
+                        <input type="file" id="fileInput" name="file" accept=".csv,.tsv,.xlsx,.xls" style="display:none;" required>
+
+                        <!-- Hidden fields for dataset metadata -->
+                        <input type="hidden" name="datasetName" id="datasetName" value="Untitled Dataset">
+
+                        <div class="upload-actions">
+                            <button type="submit" class="btn-next" id="nextBtn" disabled>Next</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script th:src="@{/js/main.js}"></script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>
