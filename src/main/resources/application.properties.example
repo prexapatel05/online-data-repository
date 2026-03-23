@@ -1,8 +1,8 @@
 spring.application.name=OnlineDataRepository
 # PostgreSQL Database Configuration
 spring.datasource.url=jdbc:postgresql://localhost:5432/online_data_repo
-spring.datasource.username=postgres
-spring.datasource.password=parva
+spring.datasource.username=USERNAME
+spring.datasource.password=PASSWORD
 spring.datasource.driver-class-name=org.postgresql.Driver
 
 # JPA/Hibernate Configuration
