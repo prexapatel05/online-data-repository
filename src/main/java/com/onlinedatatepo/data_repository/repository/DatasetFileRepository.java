@@ -1,10 +1,12 @@
 package com.onlinedatatepo.data_repository.repository;
 
-import com.onlinedatatepo.data_repository.entity.DatasetFile;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.onlinedatatepo.data_repository.entity.DatasetFile;
+import com.onlinedatatepo.data_repository.entity.DatasetFileCategory;
 
 /**
  * Repository for DatasetFile entity.
@@ -17,6 +19,11 @@ public interface DatasetFileRepository extends JpaRepository<DatasetFile, Intege
      * Find all files in a dataset.
      */
     List<DatasetFile> findByDataset_DatasetId(Integer datasetId);
+
+    /**
+     * Find files in a dataset by category.
+     */
+    List<DatasetFile> findByDataset_DatasetIdAndFileCategory(Integer datasetId, DatasetFileCategory fileCategory);
 
     /**
      * Find a file by file name in a dataset.

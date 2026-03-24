@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Datasets - DataHub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div class="app-layout">
+    <div th:replace="~{fragments/sidebar :: sidebar('my-datasets')}"></div>
+
+    <div class="main-content">
+        <div th:replace="~{fragments/header :: header}"></div>
+
+        <div class="page-content">
+            <div class="breadcrumb">
+                <a th:href="@{/dashboard}">Home</a>
+                <i data-lucide="chevron-right" class="breadcrumb-sep"></i>
+                <span>My Datasets</span>
+            </div>
+
+            <h1 class="page-title">My Datasets</h1>
+            <p class="page-subtitle">All datasets you created, including private, public, and authorized visibility.</p>
+
+            <div class="section-header" style="margin-top: 24px;">
+                <h2><i data-lucide="folder-open" class="section-icon"></i> Owned Datasets</h2>
+                <a th:href="@{/upload}">Upload New <i data-lucide="arrow-right"></i></a>
+            </div>
+
+            <div class="dataset-grid">
+                <div th:each="dataset : ${myDatasets}" class="dataset-card">
+                    <div class="dataset-card-header">
+                        <h3 th:text="${dataset.name}">Dataset Name</h3>
+                        <span class="badge badge-default" th:text="${dataset.accessLevel}">PRIVATE</span>
+                    </div>
+                    <p th:text="${dataset.description != null ? (dataset.description.length() > 100 ? dataset.description.substring(0, 100) + '...' : dataset.description) : 'No description available'}">
+                        Dataset description goes here...
+                    </p>
+                    <div class="dataset-tags" th:if="${dataset.tag != null}">
+                        <span class="tag" th:each="t, iter : ${dataset.tag.split(',')}" th:if="${iter.index < 3}" th:text="${t.trim()}">tag</span>
+                    </div>
+                    <div class="dataset-card-footer">
+                        <div class="dataset-stats">
+                            <span><i data-lucide="calendar"></i> <span th:text="${#temporals.format(dataset.createdAt, 'MMM dd')}">Jan 01</span></span>
+                        </div>
+                        <span class="dataset-author">Status: <strong th:text="${dataset.status}">PENDING</strong></span>
+                    </div>
+                </div>
+
+                <div th:if="${#lists.isEmpty(myDatasets)}" class="dataset-card" style="grid-column: 1/-1; text-align:center; padding:40px;">
+                    <p style="color:#6b7c8a;">You have not uploaded any dataset yet. Start by <a th:href="@{/upload}" style="color:#0d9488; font-weight:600;">creating a new upload</a>.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/main.js}"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

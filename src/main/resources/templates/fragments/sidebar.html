@@ -12,8 +12,8 @@
         <a th:href="@{/dashboard}" th:classappend="${activePage == 'dashboard'} ? 'active' : ''">
             <i data-lucide="layout-dashboard" class="nav-icon"></i> Dashboard
         </a>
-        <a th:href="@{/dashboard}" th:classappend="${activePage == 'datasets'} ? 'active' : ''">
-            <i data-lucide="folder-open" class="nav-icon"></i> Datasets
+        <a th:href="@{/my-datasets}" th:classappend="${activePage == 'my-datasets'} ? 'active' : ''">
+            <i data-lucide="folder-open" class="nav-icon"></i> My Datasets
         </a>
         <a th:href="@{/upload}" th:classappend="${activePage == 'upload'} ? 'active' : ''">
             <i data-lucide="upload-cloud" class="nav-icon"></i> Upload Dataset

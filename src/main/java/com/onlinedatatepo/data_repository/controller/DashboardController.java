@@ -6,6 +6,7 @@ import com.onlinedatatepo.data_repository.entity.User;
 import com.onlinedatatepo.data_repository.repository.AuditLogRepository;
 import com.onlinedatatepo.data_repository.service.AuthService;
 import com.onlinedatatepo.data_repository.service.DatasetService;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
@@ -48,5 +49,19 @@ public class DashboardController {
         model.addAttribute("totalDatasets", datasetService.countAllDatasets());
 
         return "dashboard";
+    }
+
+    @GetMapping("/my-datasets")
+    public String myDatasets(Authentication authentication, Model model) {
+        User user = authService.findByEmail(authentication.getName());
+        model.addAttribute("user", user);
+
+        Page<Dataset> myDatasets = datasetService.getDatasetsByUser(
+                user.getUserId(),
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"))
+        );
+
+        model.addAttribute("myDatasets", myDatasets.getContent());
+        return "my-datasets";
     }
 }

@@ -1193,6 +1193,10 @@ a {
     flex-shrink: 0;
 }
 
+.step-line.completed {
+    background: #0d9488;
+}
+
 /* Upload Drop Zone */
 .upload-card {
     background: #fff;
@@ -1263,6 +1267,7 @@ a {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
+    flex-wrap: wrap;
 }
 
 .btn-next {
@@ -1285,6 +1290,122 @@ a {
     background: #4b5563;
     cursor: not-allowed;
     opacity: 0.7;
+}
+
+.btn-light {
+    background: #f1f5f9;
+    color: #133250;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-light:hover {
+    background: #e2e8f0;
+}
+
+.step-note {
+    color: #6b7c8a;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+.document-list {
+    margin-top: 20px;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 16px;
+}
+
+.document-list h4 {
+    margin-bottom: 10px;
+    color: #133250;
+    font-size: 14px;
+}
+
+.document-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: #f8fafc;
+}
+
+.document-type {
+    margin-left: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #0d9488;
+    background: #ecfeff;
+    padding: 3px 8px;
+    border-radius: 999px;
+}
+
+.document-meta {
+    color: #64748b;
+    font-size: 12px;
+}
+
+.placeholder-box {
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    padding: 30px;
+    text-align: center;
+    background: #f8fafc;
+    margin-bottom: 16px;
+}
+
+.placeholder-box [data-lucide] {
+    width: 34px;
+    height: 34px;
+    color: #0d9488;
+    margin-bottom: 10px;
+}
+
+.placeholder-box p {
+    color: #133250;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.placeholder-box span {
+    color: #64748b;
+    font-size: 14px;
+}
+
+.permission-options {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.permission-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    border: 1px solid #dbe1e8;
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.permission-option:hover {
+    border-color: #0d9488;
+    background: #f0fdfa;
+}
+
+.permission-option input[type="radio"] {
+    margin-top: 4px;
+}
+
+.permission-option p {
+    margin-top: 4px;
+    margin-bottom: 0;
+    color: #64748b;
+    font-size: 13px;
 }
 
 /* ========== RESPONSIVE ========== */

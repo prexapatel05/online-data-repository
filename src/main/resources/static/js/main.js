@@ -56,6 +56,62 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // ===== Additional Documents Drop Zone =====
+    const docDropZone = document.getElementById('docDropZone');
+    const docInput = document.getElementById('docInput');
+    const docFileSelected = document.getElementById('docFileSelected');
+    const docUploadBtn = document.getElementById('docUploadBtn');
+
+    if (docDropZone && docInput) {
+        docDropZone.addEventListener('click', function () {
+            docInput.click();
+        });
+
+        docDropZone.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            docDropZone.classList.add('dragover');
+        });
+
+        docDropZone.addEventListener('dragleave', function () {
+            docDropZone.classList.remove('dragover');
+        });
+
+        docDropZone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            docDropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                docInput.files = e.dataTransfer.files;
+                showSelectedDocs(e.dataTransfer.files);
+            }
+        });
+
+        docInput.addEventListener('change', function () {
+            if (docInput.files.length > 0) {
+                showSelectedDocs(docInput.files);
+            }
+        });
+
+        function showSelectedDocs(files) {
+            if (docFileSelected) {
+                if (files.length === 1) {
+                    docFileSelected.textContent = 'Selected: ' + files[0].name + ' (' + formatSize(files[0].size) + ')';
+                } else {
+                    docFileSelected.textContent = 'Selected ' + files.length + ' files';
+                }
+                docFileSelected.style.display = 'block';
+            }
+            if (docUploadBtn) {
+                docUploadBtn.disabled = false;
+            }
+        }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+    }
+
     // ===== Category Tab Switching =====
     var tabs = document.querySelectorAll('.category-tab');
     tabs.forEach(function (tab) {

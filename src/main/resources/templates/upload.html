@@ -8,83 +8,168 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <div class="app-layout">
-        <!-- Sidebar -->
-        <div th:replace="~{fragments/sidebar :: sidebar('upload')}"></div>
+<div class="app-layout">
+    <div th:replace="~{fragments/sidebar :: sidebar('upload')}"></div>
 
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Header -->
-            <div th:replace="~{fragments/header :: header}"></div>
+    <div class="main-content">
+        <div th:replace="~{fragments/header :: header}"></div>
 
-            <div class="page-content">
-                <!-- Breadcrumb -->
-                <div class="breadcrumb">
-                    <a th:href="@{/dashboard}">Home</a>
-                    <i data-lucide="chevron-right" class="breadcrumb-sep"></i>
-                    <span>Upload Dataset</span>
+        <div class="page-content">
+            <div class="breadcrumb">
+                <a th:href="@{/dashboard}">Home</a>
+                <i data-lucide="chevron-right" class="breadcrumb-sep"></i>
+                <span>Upload Dataset</span>
+            </div>
+
+            <h1 class="page-title">Upload Dataset</h1>
+            <p class="page-subtitle">Upload and configure your research dataset in a few simple steps</p>
+
+            <div th:if="${success}" class="alert alert-success">
+                <span th:text="${success}"></span>
+            </div>
+            <div th:if="${error}" class="alert alert-error">
+                <span th:text="${error}"></span>
+            </div>
+
+            <div class="step-indicator">
+                <div class="step" th:classappend="${currentStep == 1 ? 'active' : (currentStep > 1 ? 'completed' : '')}">
+                    <div class="step-circle"><i data-lucide="upload"></i></div>
+                    <span class="step-label">Upload File</span>
                 </div>
+                <div class="step-line" th:classappend="${currentStep > 1 ? 'completed' : ''}"></div>
 
-                <h1 class="page-title">Upload Dataset</h1>
-                <p class="page-subtitle">Upload and configure your research dataset in a few simple steps</p>
-
-                <!-- Success/Error Messages -->
-                <div th:if="${success}" class="alert alert-success">
-                    <span th:text="${success}"></span>
+                <div class="step" th:classappend="${currentStep == 2 ? 'active' : (currentStep > 2 ? 'completed' : '')}">
+                    <div class="step-circle"><i data-lucide="file-text"></i></div>
+                    <span class="step-label">Additional Documents</span>
                 </div>
-                <div th:if="${error}" class="alert alert-error">
-                    <span th:text="${error}"></span>
+                <div class="step-line" th:classappend="${currentStep > 2 ? 'completed' : ''}"></div>
+
+                <div class="step" th:classappend="${currentStep == 3 ? 'active' : (currentStep > 3 ? 'completed' : '')}">
+                    <div class="step-circle"><i data-lucide="sparkles"></i></div>
+                    <span class="step-label">Metadata Extractor</span>
                 </div>
+                <div class="step-line" th:classappend="${currentStep > 3 ? 'completed' : ''}"></div>
 
-                <!-- Step Indicator -->
-                <div class="step-indicator">
-                    <div class="step active">
-                        <div class="step-circle"><i data-lucide="upload"></i></div>
-                        <span class="step-label">Upload File</span>
-                    </div>
-                    <div class="step-line"></div>
-                    <div class="step">
-                        <div class="step-circle"><i data-lucide="file-spreadsheet"></i></div>
-                        <span class="step-label">Schema Preview</span>
-                    </div>
-                    <div class="step-line"></div>
-                    <div class="step">
-                        <div class="step-circle"><i data-lucide="check-circle"></i></div>
-                        <span class="step-label">Meta Data</span>
-                    </div>
-                    <div class="step-line"></div>
-                    <div class="step">
-                        <div class="step-circle"><i data-lucide="users"></i></div>
-                        <span class="step-label">Set Permissions</span>
-                    </div>
+                <div class="step" th:classappend="${currentStep == 4 ? 'active' : ''}">
+                    <div class="step-circle"><i data-lucide="users"></i></div>
+                    <span class="step-label">Set Permissions</span>
                 </div>
+            </div>
 
-                <!-- Upload Card -->
-                <div class="upload-card">
-                    <h3>Upload Your Dataset</h3>
+            <div class="upload-card" th:if="${currentStep == 1}">
+                <h3>Step 1: Upload Your Dataset File</h3>
+                <form id="uploadForm" th:action="@{/upload/start}" method="post" enctype="multipart/form-data">
+                    <div class="drop-zone" id="dropZone">
+                        <div class="upload-icon"><i data-lucide="upload"></i></div>
+                        <p>Drop your dataset file here or click to browse</p>
+                        <span class="supported-formats">Supported formats: CSV, TSV, Excel</span>
+                        <div class="file-selected" id="fileSelected" style="display:none;"></div>
+                    </div>
 
-                    <form id="uploadForm" th:action="@{/upload}" method="post" enctype="multipart/form-data">
-                        <div class="drop-zone" id="dropZone">
-                            <div class=\"upload-icon\"><i data-lucide=\"upload\"></i></div>
-                            <p>Drop your file here or click to browse</p>
-                            <span class="supported-formats">Supported formats: CSV, TSV, Excel</span>
-                            <div class="file-selected" id="fileSelected" style="display:none;"></div>
+                    <input type="file" id="fileInput" name="file" accept=".csv,.tsv,.xlsx,.xls" style="display:none;" required>
+
+                    <div class="form-group" style="margin-bottom:12px;">
+                        <label for="datasetName">Dataset Name</label>
+                        <input type="text" name="datasetName" id="datasetName" value="Untitled Dataset" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" rows="3" placeholder="Brief description of this dataset"></textarea>
+                    </div>
+
+                    <div class="upload-actions">
+                        <button type="submit" class="btn-next" id="nextBtn" disabled>Next: Additional Documents</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="upload-card" th:if="${currentStep == 2}">
+                <h3>Step 2: Attach Additional Documents</h3>
+                <p class="step-note">Add supporting files such as license documents, README files, or usage notes.</p>
+
+                <form th:action="@{'/upload/' + ${dataset.datasetId} + '/documents'}" method="post" enctype="multipart/form-data">
+                    <div class="drop-zone" id="docDropZone">
+                        <div class="upload-icon"><i data-lucide="paperclip"></i></div>
+                        <p>Drop additional files here or click to browse</p>
+                        <span class="supported-formats">Allowed: PDF, TXT, MD, DOC, DOCX, RTF</span>
+                        <div class="file-selected" id="docFileSelected" style="display:none;"></div>
+                    </div>
+
+                    <input type="file" id="docInput" name="documents" accept=".pdf,.txt,.md,.doc,.docx,.rtf" multiple style="display:none;">
+
+                    <div class="form-group" style="margin-top:14px; margin-bottom:16px;">
+                        <label for="documentCategory">Document Type</label>
+                        <select id="documentCategory" name="documentCategory" required>
+                            <option th:each="category : ${documentCategories}"
+                                    th:value="${category}"
+                                    th:text="${category}">
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="upload-actions">
+                        <button type="submit" class="btn-next" id="docUploadBtn" disabled>Upload Documents</button>
+                        <a class="btn-next btn-light" th:href="@{'/upload/' + ${dataset.datasetId} + '/metadata'}">Next: Metadata Extractor</a>
+                    </div>
+                </form>
+
+                <div th:if="${!#lists.isEmpty(additionalDocuments)}" class="document-list">
+                    <h4>Attached Documents</h4>
+                    <div class="document-item" th:each="doc : ${additionalDocuments}">
+                        <div>
+                            <strong th:text="${doc.fileName}">file.pdf</strong>
+                            <span class="document-type" th:text="${doc.fileCategory}">LICENSE</span>
                         </div>
-
-                        <input type="file" id="fileInput" name="file" accept=".csv,.tsv,.xlsx,.xls" style="display:none;" required>
-
-                        <!-- Hidden fields for dataset metadata -->
-                        <input type="hidden" name="datasetName" id="datasetName" value="Untitled Dataset">
-
-                        <div class="upload-actions">
-                            <button type="submit" class="btn-next" id="nextBtn" disabled>Next</button>
-                        </div>
-                    </form>
+                        <span class="document-meta" th:text="${#temporals.format(doc.uploadedAt, 'MMM dd, HH:mm')}">Mar 24, 10:00</span>
+                    </div>
                 </div>
+            </div>
+
+            <div class="upload-card" th:if="${currentStep == 3}">
+                <h3>Step 3: Metadata Extractor</h3>
+                <div class="placeholder-box">
+                    <i data-lucide="sparkles"></i>
+                    <p>Metadata extractor workflow will be integrated in the next phase.</p>
+                    <span>You can continue to set dataset permissions now.</span>
+                </div>
+
+                <div class="upload-actions">
+                    <a class="btn-next btn-light" th:href="@{'/upload/' + ${dataset.datasetId} + '/documents'}">Back</a>
+                    <a class="btn-next" th:href="@{'/upload/' + ${dataset.datasetId} + '/permissions'}">Next: Set Permissions</a>
+                </div>
+            </div>
+
+            <div class="upload-card" th:if="${currentStep == 4}">
+                <h3>Step 4: Set Permissions</h3>
+                <p class="step-note">Choose who can view this dataset after publishing.</p>
+
+                <form th:action="@{'/upload/' + ${dataset.datasetId} + '/permissions'}" method="post">
+                    <div class="permission-options">
+                        <label class="permission-option" th:each="level : ${accessLevels}">
+                            <input type="radio"
+                                   name="accessLevel"
+                                   th:value="${level}"
+                                   th:checked="${dataset.accessLevel == level}">
+                            <div>
+                                <strong th:text="${level}">PRIVATE</strong>
+                                <p th:if="${level.name() == 'PUBLIC'}">Anyone can see this dataset on the main website.</p>
+                                <p th:if="${level.name() == 'PRIVATE'}">Only you can view this dataset.</p>
+                                <p th:if="${level.name() == 'AUTHORIZED'}">Only users you authorize can view this dataset.</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="upload-actions">
+                        <a class="btn-next btn-light" th:href="@{'/upload/' + ${dataset.datasetId} + '/metadata'}">Back</a>
+                        <button type="submit" class="btn-next">Finish Upload</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
-    <script th:src="@{/js/main.js}"></script>
-    <script>lucide.createIcons();</script>
+</div>
+<script th:src="@{/js/main.js}"></script>
+<script>lucide.createIcons();</script>
 </body>
 </html>

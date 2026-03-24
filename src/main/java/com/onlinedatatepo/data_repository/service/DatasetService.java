@@ -1,17 +1,19 @@
 package com.onlinedatatepo.data_repository.service;
 
-import com.onlinedatatepo.data_repository.entity.AccessLevel;
-import com.onlinedatatepo.data_repository.entity.Dataset;
-import com.onlinedatatepo.data_repository.entity.DatasetStatus;
-import com.onlinedatatepo.data_repository.entity.User;
-import com.onlinedatatepo.data_repository.repository.DatasetRepository;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import com.onlinedatatepo.data_repository.entity.AccessLevel;
+import com.onlinedatatepo.data_repository.entity.Dataset;
+import com.onlinedatatepo.data_repository.entity.DatasetStatus;
+import com.onlinedatatepo.data_repository.entity.User;
+import com.onlinedatatepo.data_repository.repository.DatasetRepository;
 
 @Service
 public class DatasetService {
@@ -52,5 +54,14 @@ public class DatasetService {
 
     public long countByStatus(DatasetStatus status) {
         return datasetRepository.countByStatus(status);
+    }
+
+    public Optional<Dataset> findById(Integer datasetId) {
+        return datasetRepository.findById(datasetId);
+    }
+
+    public Dataset updateAccessLevel(Dataset dataset, AccessLevel accessLevel) {
+        dataset.setAccessLevel(accessLevel);
+        return datasetRepository.save(dataset);
     }
 }
