@@ -1,11 +1,13 @@
 package com.onlinedatatepo.data_repository.entity;
 
+import com.onlinedatatepo.data_repository.entity.MetadataExtractionStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -44,6 +46,19 @@ public class DatasetTable {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "dataset_id", nullable = false)
     private Dataset dataset;
+
+    @Column(name = "metadata", columnDefinition = "jsonb")
+    private String metadata;
+
+    @Column(name = "metadata_extracted_at")
+    private LocalDateTime metadataExtractedAt;
+
+    @Column(name = "metadata_extraction_status", length = 50)
+    @Enumerated(EnumType.STRING)
+    private MetadataExtractionStatus metadataExtractionStatus = MetadataExtractionStatus.PENDING;
+
+    @Column(name = "metadata_extraction_error", columnDefinition = "TEXT")
+    private String metadataExtractionError;
 
     @OneToMany(mappedBy = "table", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<DatasetColumn> columns;

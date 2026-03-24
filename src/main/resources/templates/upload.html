@@ -128,10 +128,40 @@
 
             <div class="upload-card" th:if="${currentStep == 3}">
                 <h3>Step 3: Metadata Extractor</h3>
-                <div class="placeholder-box">
+                <p class="step-note">Dataset metadata extraction status for each uploaded table file.</p>
+
+                <div th:if="${#lists.isEmpty(datasetTables)}" class="placeholder-box">
                     <i data-lucide="sparkles"></i>
-                    <p>Metadata extractor workflow will be integrated in the next phase.</p>
-                    <span>You can continue to set dataset permissions now.</span>
+                    <p>No dataset table metadata records found. Metadata extraction will run after file upload.</p>
+                    <span>Please proceed to Permissions or come back after a few seconds.</span>
+                </div>
+
+                <div th:if="${!#lists.isEmpty(datasetTables)}" class="metadata-table-wrapper">
+                    <table class="simple-table">
+                        <thead>
+                            <tr>
+                                <th>Table Name</th>
+                                <th>Status</th>
+                                <th>Extracted At</th>
+                                <th>Metadata</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="table : ${datasetTables}">
+                                <td th:text="${table.tableName}">movies.csv</td>
+                                <td th:text="${table.metadataExtractionStatus}">PENDING</td>
+                                <td th:text="${table.metadataExtractedAt != null ? #temporals.format(table.metadataExtractedAt, 'yyyy-MM-dd HH:mm') : 'N/A'}">N/A</td>
+                                <td th:text="${table.metadata != null ? 'Yes' : 'No'}">No</td>
+                                <td>
+                                    <button class="btn-small" type="button" th:onclick="|reExtractMetadata(${dataset.datasetId}, ${table.tableId})|">Re-extract</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="hint">
+                        After successful extraction, metadata is stored and available as JSON in dataset table details.
+                    </div>
                 </div>
 
                 <div class="upload-actions">
@@ -139,6 +169,30 @@
                     <a class="btn-next" th:href="@{'/upload/' + ${dataset.datasetId} + '/permissions'}">Next: Set Permissions</a>
                 </div>
             </div>
+
+            <script>
+                function reExtractMetadata(datasetId, tableId) {
+                    const endpoint = `/api/datasets/${datasetId}/tables/${tableId}/re-extract-metadata`;
+                    fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Re-extraction failed: ' + response.status);
+                        }
+                        return response.text();
+                    })
+                    .then(msg => {
+                        alert('Re-extraction started. Refresh in a few seconds to see updates.');
+                        setTimeout(() => location.reload(), 1500);
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Unable to start re-extraction. You may not have permission.');
+                    });
+                }
+            </script>
 
             <div class="upload-card" th:if="${currentStep == 4}">
                 <h3>Step 4: Set Permissions</h3>

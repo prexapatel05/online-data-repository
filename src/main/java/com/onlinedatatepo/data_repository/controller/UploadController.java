@@ -142,6 +142,7 @@ public class UploadController {
         model.addAttribute("documentCategories", getDocumentCategories());
         model.addAttribute("accessLevels", AccessLevel.values());
         model.addAttribute("additionalDocuments", getAdditionalDocuments(datasetId));
+        model.addAttribute("datasetTables", datasetService.getTablesByDatasetId(datasetId));
         model.addAttribute("basePath", request.getContextPath());
         return "upload";
     }

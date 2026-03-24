@@ -38,10 +38,13 @@ public class FileUploadService {
 
     private final DatasetFileRepository datasetFileRepository;
     private final DatasetRepository datasetRepository;
+    private final MetadataExtractionService metadataExtractionService;
 
-    public FileUploadService(DatasetFileRepository datasetFileRepository, DatasetRepository datasetRepository) {
+    public FileUploadService(DatasetFileRepository datasetFileRepository, DatasetRepository datasetRepository,
+                             MetadataExtractionService metadataExtractionService) {
         this.datasetFileRepository = datasetFileRepository;
         this.datasetRepository = datasetRepository;
+        this.metadataExtractionService = metadataExtractionService;
     }
 
     public DatasetFile uploadFile(MultipartFile file, Integer datasetId, User owner) throws IOException {
@@ -64,7 +67,9 @@ public class FileUploadService {
         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
         // Save metadata
-        return saveFileMetadata(dataset, fileName, filePath, DatasetFileCategory.DATASET);
+        DatasetFile created = saveFileMetadata(dataset, fileName, filePath, DatasetFileCategory.DATASET);
+        metadataExtractionService.triggerMetadataExtraction(created, owner);
+        return created;
     }
 
     public DatasetFile uploadFileForNewDataset(MultipartFile file, Dataset dataset) throws IOException {
@@ -77,7 +82,9 @@ public class FileUploadService {
         Path filePath = datasetDir.resolve(fileName);
         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-        return saveFileMetadata(dataset, fileName, filePath, DatasetFileCategory.DATASET);
+        DatasetFile created = saveFileMetadata(dataset, fileName, filePath, DatasetFileCategory.DATASET);
+        metadataExtractionService.triggerMetadataExtraction(created, dataset.getUser());
+        return created;
     }
 
     public DatasetFile uploadAdditionalDocument(MultipartFile file, Dataset dataset, DatasetFileCategory fileCategory)

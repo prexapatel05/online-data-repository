@@ -12,16 +12,20 @@ import org.springframework.stereotype.Service;
 import com.onlinedatatepo.data_repository.entity.AccessLevel;
 import com.onlinedatatepo.data_repository.entity.Dataset;
 import com.onlinedatatepo.data_repository.entity.DatasetStatus;
+import com.onlinedatatepo.data_repository.entity.DatasetTable;
 import com.onlinedatatepo.data_repository.entity.User;
 import com.onlinedatatepo.data_repository.repository.DatasetRepository;
+import com.onlinedatatepo.data_repository.repository.DatasetTableRepository;
 
 @Service
 public class DatasetService {
 
     private final DatasetRepository datasetRepository;
+    private final DatasetTableRepository datasetTableRepository;
 
-    public DatasetService(DatasetRepository datasetRepository) {
+    public DatasetService(DatasetRepository datasetRepository, DatasetTableRepository datasetTableRepository) {
         this.datasetRepository = datasetRepository;
+        this.datasetTableRepository = datasetTableRepository;
     }
 
     public List<Dataset> getPublicVerifiedDatasets() {
@@ -58,6 +62,10 @@ public class DatasetService {
 
     public Optional<Dataset> findById(Integer datasetId) {
         return datasetRepository.findById(datasetId);
+    }
+
+    public List<DatasetTable> getTablesByDatasetId(Integer datasetId) {
+        return datasetTableRepository.findByDataset_DatasetId(datasetId);
     }
 
     public Dataset updateAccessLevel(Dataset dataset, AccessLevel accessLevel) {
