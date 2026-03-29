@@ -2,12 +2,16 @@ package com.onlinedatatepo.data_repository.service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.onlinedatatepo.data_repository.entity.AccessLevel;
 import com.onlinedatatepo.data_repository.entity.Dataset;
@@ -17,16 +21,21 @@ import com.onlinedatatepo.data_repository.entity.FileType;
 import com.onlinedatatepo.data_repository.entity.User;
 import com.onlinedatatepo.data_repository.repository.DatasetRepository;
 import com.onlinedatatepo.data_repository.repository.DatasetTableRepository;
+import com.onlinedatatepo.data_repository.repository.UserRepository;
 
 @Service
 public class DatasetService {
 
     private final DatasetRepository datasetRepository;
     private final DatasetTableRepository datasetTableRepository;
+    private final UserRepository userRepository;
 
-    public DatasetService(DatasetRepository datasetRepository, DatasetTableRepository datasetTableRepository) {
+    public DatasetService(DatasetRepository datasetRepository,
+                          DatasetTableRepository datasetTableRepository,
+                          UserRepository userRepository) {
         this.datasetRepository = datasetRepository;
         this.datasetTableRepository = datasetTableRepository;
+        this.userRepository = userRepository;
     }
 
     public List<Dataset> getPublicVerifiedDatasets() {
@@ -73,6 +82,10 @@ public class DatasetService {
         );
     }
 
+    public Page<Dataset> getSharedWithMeDatasets(Integer currentUserId, Pageable pageable) {
+        return datasetRepository.findSharedWithMe(currentUserId, pageable);
+    }
+
     public Dataset createDataset(String name, String description, String tag, AccessLevel accessLevel, User owner) {
         Dataset dataset = new Dataset();
         dataset.setName(name);
@@ -105,6 +118,58 @@ public class DatasetService {
         return datasetRepository.save(dataset);
     }
 
+    @Transactional
+    public void deleteDataset(Dataset dataset) {
+        if (dataset.getAuthorizedUsers() != null) {
+            dataset.getAuthorizedUsers().clear();
+        }
+        datasetRepository.delete(dataset);
+    }
+
+    public PermissionUpdateResult updatePermissionsByEmails(Dataset dataset,
+                                                            AccessLevel accessLevel,
+                                                            List<String> authorizedEmails) {
+        dataset.setAccessLevel(accessLevel);
+
+        if (accessLevel != AccessLevel.AUTHORIZED) {
+            dataset.setAuthorizedUsers(new ArrayList<>());
+            Dataset saved = datasetRepository.save(dataset);
+            return new PermissionUpdateResult(saved, List.of(), List.of());
+        }
+
+        Set<String> normalizedEmails = new LinkedHashSet<>();
+        if (authorizedEmails != null) {
+            for (String rawEmail : authorizedEmails) {
+                if (rawEmail == null) {
+                    continue;
+                }
+                String email = rawEmail.trim().toLowerCase();
+                if (!email.isEmpty()) {
+                    normalizedEmails.add(email);
+                }
+            }
+        }
+
+        normalizedEmails.remove(dataset.getUser().getEmail().trim().toLowerCase());
+
+        List<User> resolvedUsers = new ArrayList<>();
+        List<String> invalidEmails = new ArrayList<>();
+
+        for (String email : normalizedEmails) {
+            Optional<User> matchedUser = userRepository.findByEmail(email);
+            if (matchedUser.isPresent()) {
+                resolvedUsers.add(matchedUser.get());
+            } else {
+                invalidEmails.add(email);
+            }
+        }
+
+        dataset.setAuthorizedUsers(resolvedUsers);
+        Dataset savedDataset = datasetRepository.save(dataset);
+        List<String> addedEmails = resolvedUsers.stream().map(User::getEmail).toList();
+        return new PermissionUpdateResult(savedDataset, addedEmails, invalidEmails);
+    }
+
     public boolean canAccessDataset(User user, Dataset dataset) {
         if (dataset.getUser().getUserId().equals(user.getUserId())) {
             return true;
@@ -126,5 +191,10 @@ public class DatasetService {
             return null;
         }
         return value.trim();
+    }
+
+    public record PermissionUpdateResult(Dataset dataset,
+                                         List<String> addedEmails,
+                                         List<String> invalidEmails) {
     }
 }

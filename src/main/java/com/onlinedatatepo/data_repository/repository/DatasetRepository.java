@@ -50,7 +50,17 @@ public interface DatasetRepository extends JpaRepository<Dataset, Integer> {
         @Query("""
               SELECT d
               FROM Dataset d
-              WHERE (d.accessLevel = com.onlinedatatepo.data_repository.entity.AccessLevel.PUBLIC OR d.user.userId = :currentUserId)
+              WHERE (
+                  d.accessLevel = com.onlinedatatepo.data_repository.entity.AccessLevel.PUBLIC
+                OR d.user.userId = :currentUserId
+                OR (
+                  d.accessLevel = com.onlinedatatepo.data_repository.entity.AccessLevel.AUTHORIZED
+                  AND EXISTS (
+                    SELECT 1 FROM d.authorizedUsers au
+                    WHERE au.userId = :currentUserId
+                  )
+                )
+              )
                 AND (:search IS NULL
                     OR CAST(COALESCE(d.name, '') AS string) LIKE CONCAT('%', CAST(:search AS string), '%')
                   OR CAST(COALESCE(d.description, '') AS string) LIKE CONCAT('%', CAST(:search AS string), '%')
@@ -70,6 +80,17 @@ public interface DatasetRepository extends JpaRepository<Dataset, Integer> {
                                        @Param("visibility") AccessLevel visibility,
                                        @Param("fileType") FileType fileType,
                                        Pageable pageable);
+
+        @Query("""
+              SELECT d
+              FROM Dataset d
+              JOIN d.authorizedUsers au
+              WHERE d.accessLevel = com.onlinedatatepo.data_repository.entity.AccessLevel.AUTHORIZED
+                AND au.userId = :currentUserId
+                AND d.user.userId <> :currentUserId
+              ORDER BY d.createdAt DESC
+              """)
+        Page<Dataset> findSharedWithMe(@Param("currentUserId") Integer currentUserId, Pageable pageable);
 
         @Query("""
               SELECT d

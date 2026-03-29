@@ -72,7 +72,13 @@ public class DashboardController {
                 PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"))
         );
 
+        Page<Dataset> sharedWithMeDatasets = datasetService.getSharedWithMeDatasets(
+            user.getUserId(),
+            PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"))
+        );
+
         model.addAttribute("myDatasets", myDatasets.getContent());
+        model.addAttribute("sharedWithMeDatasets", sharedWithMeDatasets.getContent());
         return "my-datasets";
     }
 }

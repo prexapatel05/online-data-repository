@@ -37,3 +37,6 @@ src/main/resources/application.properties
 
 ### Runtime server data ###
 uploads/
+
+### Python ###
+__pycache__/

@@ -3,6 +3,8 @@ package com.onlinedatatepo.data_repository.controller;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Collections;
+import java.util.stream.Collectors;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -116,6 +118,15 @@ public class UploadController {
         model.addAttribute("documentCategories", getDocumentCategories());
         model.addAttribute("accessLevels", AccessLevel.values());
         model.addAttribute("additionalDocuments", getAdditionalDocuments(datasetId));
+        model.addAttribute(
+            "authorizedEmails",
+            dataset.getAuthorizedUsers() == null
+                ? Collections.emptyList()
+                : dataset.getAuthorizedUsers().stream()
+                    .map(User::getEmail)
+                    .filter(email -> email != null && !email.isBlank())
+                    .collect(Collectors.toList())
+        );
         model.addAttribute("basePath", request.getContextPath());
         return "upload";
     }
@@ -204,6 +215,7 @@ public class UploadController {
     @PostMapping("/upload/{datasetId}/permissions")
     public String savePermissions(@PathVariable Integer datasetId,
                                   @RequestParam("accessLevel") AccessLevel accessLevel,
+                                  @RequestParam(value = "authorizedEmails", required = false) List<String> authorizedEmails,
                                   Authentication authentication,
                                   RedirectAttributes redirectAttributes) {
         Dataset dataset = resolveOwnedDataset(datasetId, authentication, redirectAttributes);
@@ -212,7 +224,20 @@ public class UploadController {
         }
 
         try {
-            datasetService.updateAccessLevel(dataset, accessLevel);
+            List<String> emails = authorizedEmails == null ? Collections.emptyList() : authorizedEmails;
+            DatasetService.PermissionUpdateResult result = datasetService.updatePermissionsByEmails(
+                    dataset,
+                    accessLevel,
+                    emails
+            );
+
+            if (!result.invalidEmails().isEmpty()) {
+                redirectAttributes.addFlashAttribute(
+                        "warning",
+                        "These emails were not found and were skipped: " + String.join(", ", result.invalidEmails())
+                );
+            }
+
             redirectAttributes.addFlashAttribute("success",
                     "Dataset uploaded successfully with " + accessLevel + " access.");
             return "redirect:/dashboard";

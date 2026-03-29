@@ -53,6 +53,36 @@
                     <p style="color:#6b7c8a;">You have not uploaded any dataset yet. Start by <a th:href="@{/upload}" style="color:#0d9488; font-weight:600;">creating a new upload</a>.</p>
                 </div>
             </div>
+
+            <div class="section-header" style="margin-top: 24px;">
+                <h2><i data-lucide="users" class="section-icon"></i> Shared With Me</h2>
+                <a th:href="@{/datasets}">Browse All <i data-lucide="arrow-right"></i></a>
+            </div>
+
+            <div class="dataset-grid">
+                <a th:each="dataset : ${sharedWithMeDatasets}" th:href="@{'/datasets/' + ${dataset.datasetId}}" class="dataset-card" style="text-decoration:none; color:inherit;">
+                    <div class="dataset-card-header">
+                        <h3 th:text="${dataset.name}">Dataset Name</h3>
+                        <span class="badge badge-default" th:text="${dataset.accessLevel}">AUTHORIZED</span>
+                    </div>
+                    <p th:text="${dataset.description != null ? (dataset.description.length() > 100 ? dataset.description.substring(0, 100) + '...' : dataset.description) : 'No description available'}">
+                        Dataset description goes here...
+                    </p>
+                    <div class="dataset-tags" th:if="${dataset.tag != null}">
+                        <span class="tag" th:each="t, iter : ${dataset.tag.split(',')}" th:if="${iter.index < 3}" th:text="${t.trim()}">tag</span>
+                    </div>
+                    <div class="dataset-card-footer">
+                        <div class="dataset-stats">
+                            <span><i data-lucide="calendar"></i> <span th:text="${#temporals.format(dataset.createdAt, 'MMM dd')}">Jan 01</span></span>
+                        </div>
+                        <span class="dataset-author">Owner: <strong th:text="${dataset.user.fullName != null ? dataset.user.fullName : dataset.user.username}">Owner</strong></span>
+                    </div>
+                </a>
+
+                <div th:if="${#lists.isEmpty(sharedWithMeDatasets)}" class="dataset-card" style="grid-column: 1/-1; text-align:center; padding:40px;">
+                    <p style="color:#6b7c8a;">No datasets have been shared with you yet.</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>

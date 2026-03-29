@@ -49,6 +49,11 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Integer> {
      */
     long countByDataset_DatasetId(Integer datasetId);
 
+        /**
+         * Count audit logs for a dataset filtered by action (case-insensitive).
+         */
+        long countByDataset_DatasetIdAndActionIgnoreCase(Integer datasetId, String action);
+
         @Query(value = """
                 SELECT a.log_id, a.action, a.dataset_id, a.details, a.timestamp, a.user_id
                 FROM audit_logs a
