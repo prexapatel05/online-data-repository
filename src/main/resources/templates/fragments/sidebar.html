@@ -15,14 +15,17 @@
         <a th:href="@{/my-datasets}" th:classappend="${activePage == 'my-datasets'} ? 'active' : ''">
             <i data-lucide="folder-open" class="nav-icon"></i> My Datasets
         </a>
+        <a th:href="@{/datasets}" th:classappend="${activePage == 'datasets'} ? 'active' : ''">
+            <i data-lucide="table-2" class="nav-icon"></i> Browse Datasets
+        </a>
         <a th:href="@{/upload}" th:classappend="${activePage == 'upload'} ? 'active' : ''">
             <i data-lucide="upload-cloud" class="nav-icon"></i> Upload Dataset
         </a>
-        <a href="#" th:classappend="${activePage == 'query'} ? 'active' : ''">
+        <a th:href="@{/query-builder}" th:classappend="${activePage == 'query'} ? 'active' : ''">
             <i data-lucide="search" class="nav-icon"></i> Query Builder
         </a>
-        <a href="#" th:classappend="${activePage == 'reports'} ? 'active' : ''">
-            <i data-lucide="bar-chart-2" class="nav-icon"></i> Reports
+        <a th:href="@{/activity-log}" th:classappend="${activePage == 'activity-log'} ? 'active' : ''">
+            <i data-lucide="history" class="nav-icon"></i> Activity Log
         </a>
         <a href="#" th:classappend="${activePage == 'admin'} ? 'active' : ''">
             <i data-lucide="shield" class="nav-icon"></i> Admin Panel

@@ -1,11 +1,7 @@
 package com.onlinedatatepo.data_repository.controller;
 
-import com.onlinedatatepo.data_repository.entity.AuditLog;
-import com.onlinedatatepo.data_repository.entity.Dataset;
-import com.onlinedatatepo.data_repository.entity.User;
-import com.onlinedatatepo.data_repository.repository.AuditLogRepository;
-import com.onlinedatatepo.data_repository.service.AuthService;
-import com.onlinedatatepo.data_repository.service.DatasetService;
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -13,8 +9,14 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.List;
+import com.onlinedatatepo.data_repository.entity.AuditLog;
+import com.onlinedatatepo.data_repository.entity.Dataset;
+import com.onlinedatatepo.data_repository.entity.User;
+import com.onlinedatatepo.data_repository.repository.AuditLogRepository;
+import com.onlinedatatepo.data_repository.service.AuthService;
+import com.onlinedatatepo.data_repository.service.DatasetService;
 
 @Controller
 public class DashboardController {
@@ -31,12 +33,19 @@ public class DashboardController {
     }
 
     @GetMapping("/dashboard")
-    public String dashboard(Authentication authentication, Model model) {
+    public String dashboard(@RequestParam(value = "search", required = false) String search,
+                            @RequestParam(value = "category", required = false) String category,
+                            Authentication authentication,
+                            Model model) {
         User user = authService.findByEmail(authentication.getName());
         model.addAttribute("user", user);
 
-        // Trending datasets (latest public ones)
-        List<Dataset> trendingDatasets = datasetService.getTrendingDatasets(4);
+        List<Dataset> trendingDatasets = datasetService.getTrendingDatasetsForDashboard(
+                user.getUserId(),
+                search,
+                category,
+                6
+        );
         model.addAttribute("trendingDatasets", trendingDatasets);
 
         // Recent activity (latest audit logs)
@@ -47,6 +56,8 @@ public class DashboardController {
 
         // Stats
         model.addAttribute("totalDatasets", datasetService.countAllDatasets());
+        model.addAttribute("selectedSearch", search == null ? "" : search);
+        model.addAttribute("selectedCategory", category == null ? "" : category);
 
         return "dashboard";
     }

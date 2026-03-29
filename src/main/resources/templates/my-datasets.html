@@ -30,7 +30,7 @@
             </div>
 
             <div class="dataset-grid">
-                <div th:each="dataset : ${myDatasets}" class="dataset-card">
+                <a th:each="dataset : ${myDatasets}" th:href="@{'/datasets/' + ${dataset.datasetId}}" class="dataset-card" style="text-decoration:none; color:inherit;">
                     <div class="dataset-card-header">
                         <h3 th:text="${dataset.name}">Dataset Name</h3>
                         <span class="badge badge-default" th:text="${dataset.accessLevel}">PRIVATE</span>
@@ -47,7 +47,7 @@
                         </div>
                         <span class="dataset-author">Status: <strong th:text="${dataset.status}">PENDING</strong></span>
                     </div>
-                </div>
+                </a>
 
                 <div th:if="${#lists.isEmpty(myDatasets)}" class="dataset-card" style="grid-column: 1/-1; text-align:center; padding:40px;">
                     <p style="color:#6b7c8a;">You have not uploaded any dataset yet. Start by <a th:href="@{/upload}" style="color:#0d9488; font-weight:600;">creating a new upload</a>.</p>

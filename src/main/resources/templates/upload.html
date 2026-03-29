@@ -68,15 +68,12 @@
 
                     <input type="file" id="fileInput" name="file" accept=".csv,.tsv,.xlsx,.xls" style="display:none;" required>
 
-                    <div class="form-group" style="margin-bottom:12px;">
-                        <label for="datasetName">Dataset Name</label>
-                        <input type="text" name="datasetName" id="datasetName" value="Untitled Dataset" required>
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" rows="4" class="fixed-description" placeholder="Briefly describe this dataset"></textarea>
                     </div>
 
-                    <div class="form-group">
-                        <label for="description">Description</label>
-                        <textarea id="description" name="description" rows="3" placeholder="Brief description of this dataset"></textarea>
-                    </div>
+                    <p class="step-note">Dataset title is auto-generated from the uploaded filename. You can rename it later from dataset details.</p>
 
                     <div class="upload-actions">
                         <button type="submit" class="btn-next" id="nextBtn" disabled>Next: Additional Documents</button>
@@ -136,32 +133,80 @@
                     <span>Please proceed to Permissions or come back after a few seconds.</span>
                 </div>
 
-                <div th:if="${!#lists.isEmpty(datasetTables)}" class="metadata-table-wrapper">
+                <div th:if="${!#lists.isEmpty(datasetTables)}" class="metadata-table-wrapper" id="metadataStatusTable" th:attr="data-has-pending=${hasPendingExtraction}">
                     <table class="simple-table">
                         <thead>
                             <tr>
                                 <th>Table Name</th>
+                                <th>Description</th>
                                 <th>Status</th>
                                 <th>Extracted At</th>
-                                <th>Metadata</th>
-                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="table : ${datasetTables}">
+                            <tr th:each="table, stat : ${datasetTables}"
+                                class="metadata-row js-metadata-row"
+                                th:attr="data-table-id=${table.tableId},data-table-name=${table.tableName},data-json=${table.metadata}"
+                                th:classappend="${stat.index == 0 ? ' selected' : ''}">
                                 <td th:text="${table.tableName}">movies.csv</td>
-                                <td th:text="${table.metadataExtractionStatus}">PENDING</td>
-                                <td th:text="${table.metadataExtractedAt != null ? #temporals.format(table.metadataExtractedAt, 'yyyy-MM-dd HH:mm') : 'N/A'}">N/A</td>
-                                <td th:text="${table.metadata != null ? 'Yes' : 'No'}">No</td>
+                                <td class="table-description js-table-description">-</td>
                                 <td>
-                                    <button class="btn-small" type="button" th:onclick="|reExtractMetadata(${dataset.datasetId}, ${table.tableId})|">Re-extract</button>
+                                    <span class="status-pill"
+                                          th:classappend="${table.metadataExtractionStatus != null and table.metadataExtractionStatus.name() == 'COMPLETED' ? ' status-success' : (table.metadataExtractionStatus != null and table.metadataExtractionStatus.name() == 'FAILED' ? ' status-failed' : ' status-pending')}"
+                                          th:text="${table.metadataExtractionStatus != null ? table.metadataExtractionStatus : 'PENDING'}">PENDING</span>
                                 </td>
+                                <td th:text="${table.metadataExtractedAt != null ? #temporals.format(table.metadataExtractedAt, 'yyyy-MM-dd HH:mm') : 'N/A'}">N/A</td>
                             </tr>
                         </tbody>
                     </table>
                     <div class="hint">
-                        After successful extraction, metadata is stored and available as JSON in dataset table details.
+                        Select a table row to inspect parsed metadata fields and column-level statistics.
                     </div>
+                </div>
+
+                <div class="metadata-details-card" id="metadataDetailsCard" th:if="${!#lists.isEmpty(datasetTables)}">
+                    <h4 id="metadataDetailsTitle">Metadata Details</h4>
+
+                    <div class="metadata-detail-section">
+                        <h5>General Metadata</h5>
+                        <table class="metadata-details-table">
+                            <thead>
+                                <tr>
+                                    <th>Field</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
+                            <tbody id="metadataGeneralBody">
+                                <tr>
+                                    <td colspan="2" class="metadata-empty">No metadata selected.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="metadata-detail-section">
+                        <h5>Column Metadata</h5>
+                        <table class="metadata-details-table">
+                            <thead>
+                                <tr>
+                                    <th>Column</th>
+                                    <th>Type</th>
+                                    <th>Cardinality</th>
+                                    <th>Missing %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="metadataColumnsBody">
+                                <tr>
+                                    <td colspan="4" class="metadata-empty">No column metadata found.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <details class="metadata-preview metadata-raw-viewer">
+                        <summary>View Raw JSON</summary>
+                        <pre id="metadataRawJson">{}</pre>
+                    </details>
                 </div>
 
                 <div class="upload-actions">
@@ -170,28 +215,208 @@
                 </div>
             </div>
 
-            <script>
-                function reExtractMetadata(datasetId, tableId) {
-                    const endpoint = `/api/datasets/${datasetId}/tables/${tableId}/re-extract-metadata`;
-                    fetch(endpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Re-extraction failed: ' + response.status);
+            <script th:if="${currentStep == 3}">
+                (function () {
+                    const statusTable = document.getElementById('metadataStatusTable');
+                    if (!statusTable) {
+                        return;
+                    }
+
+                    const rows = Array.from(statusTable.querySelectorAll('.js-metadata-row'));
+                    const detailsTitle = document.getElementById('metadataDetailsTitle');
+                    const generalBody = document.getElementById('metadataGeneralBody');
+                    const columnsBody = document.getElementById('metadataColumnsBody');
+                    const rawJsonBox = document.getElementById('metadataRawJson');
+
+                    rows.forEach(function (row) {
+                        const parsed = parseMetadata(row.getAttribute('data-json'));
+                        const descriptionCell = row.querySelector('.js-table-description');
+                        if (descriptionCell) {
+                            descriptionCell.textContent = pickDescription(parsed);
                         }
-                        return response.text();
-                    })
-                    .then(msg => {
-                        alert('Re-extraction started. Refresh in a few seconds to see updates.');
-                        setTimeout(() => location.reload(), 1500);
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        alert('Unable to start re-extraction. You may not have permission.');
+
+                        row.addEventListener('click', function () {
+                            rows.forEach(function (r) { r.classList.remove('selected'); });
+                            row.classList.add('selected');
+                            renderMetadata(row, parsed);
+                        });
                     });
-                }
+
+                    if (rows.length > 0) {
+                        const first = rows.find(function (r) { return r.classList.contains('selected'); }) || rows[0];
+                        first.classList.add('selected');
+                        renderMetadata(first, parseMetadata(first.getAttribute('data-json')));
+                    }
+
+                    function renderMetadata(row, metadata) {
+                        const tableName = row.getAttribute('data-table-name') || 'Selected Table';
+                        if (detailsTitle) {
+                            detailsTitle.textContent = 'Metadata Details: ' + tableName;
+                        }
+
+                        const generalEntries = buildGeneralEntries(metadata);
+                        if (generalBody) {
+                            if (generalEntries.length === 0) {
+                                generalBody.innerHTML = '<tr><td colspan="2" class="metadata-empty">No metadata fields found.</td></tr>';
+                            } else {
+                                generalBody.innerHTML = generalEntries.map(function (entry) {
+                                    return '<tr><td>' + escapeHtml(entry.key) + '</td><td>' + escapeHtml(entry.value) + '</td></tr>';
+                                }).join('');
+                            }
+                        }
+
+                        const columnEntries = buildColumnEntries(metadata);
+                        if (columnsBody) {
+                            if (columnEntries.length === 0) {
+                                columnsBody.innerHTML = '<tr><td colspan="4" class="metadata-empty">No column metadata found.</td></tr>';
+                            } else {
+                                columnsBody.innerHTML = columnEntries.map(function (column) {
+                                    return '<tr><td>' + escapeHtml(column.name) + '</td><td>' + escapeHtml(column.type) + '</td><td>' + escapeHtml(column.cardinality) + '</td><td>' + escapeHtml(column.missing) + '</td></tr>';
+                                }).join('');
+                            }
+                        }
+
+                        if (rawJsonBox) {
+                            rawJsonBox.textContent = JSON.stringify(metadata, null, 2);
+                        }
+                    }
+
+                    function parseMetadata(rawJson) {
+                        if (!rawJson) {
+                            return {};
+                        }
+                        try {
+                            const parsed = JSON.parse(rawJson);
+                            return parsed && typeof parsed === 'object' ? parsed : {};
+                        } catch (e) {
+                            return {};
+                        }
+                    }
+
+                    function pickDescription(metadata) {
+                        const candidates = [
+                            metadata.description,
+                            metadata.summary,
+                            metadata.tableDescription,
+                            metadata.table_description,
+                            metadata?.overview?.description
+                        ];
+                        for (let i = 0; i < candidates.length; i += 1) {
+                            const value = candidates[i];
+                            if (typeof value === 'string' && value.trim().length > 0) {
+                                return value.trim();
+                            }
+                        }
+                        return 'No description available';
+                    }
+
+                    function buildGeneralEntries(metadata) {
+                        const entries = [];
+                        const preferred = [
+                            'description',
+                            'summary',
+                            'rowCount',
+                            'row_count',
+                            'totalRows',
+                            'total_rows',
+                            'fileType',
+                            'file_type',
+                            'delimiter',
+                            'encoding',
+                            'columnCount',
+                            'column_count',
+                            'detectedLanguage',
+                            'detected_language'
+                        ];
+
+                        preferred.forEach(function (key) {
+                            if (Object.prototype.hasOwnProperty.call(metadata, key)) {
+                                entries.push({ key: key, value: formatMetadataValue(metadata[key]) });
+                            }
+                        });
+
+                        if (entries.length === 0) {
+                            Object.keys(metadata).forEach(function (key) {
+                                if (key !== 'columns' && key !== 'columnStats' && key !== 'column_stats' && key !== 'schema') {
+                                    entries.push({ key: key, value: formatMetadataValue(metadata[key]) });
+                                }
+                            });
+                        }
+
+                        return entries.slice(0, 20);
+                    }
+
+                    function buildColumnEntries(metadata) {
+                        const rawColumns = metadata.columns || metadata.columnStats || metadata.column_stats || metadata.schema || [];
+                        if (Array.isArray(rawColumns)) {
+                            return rawColumns.map(function (col, index) {
+                                if (col && typeof col === 'object') {
+                                    const name = col.name || col.columnName || col.column_name || ('column_' + (index + 1));
+                                    const type = col.type || col.dataType || col.data_type || col.detectedType || 'N/A';
+                                    const cardinality = col.cardinality !== undefined ? col.cardinality : (col.uniqueValues !== undefined ? col.uniqueValues : (col.unique_values !== undefined ? col.unique_values : 'N/A'));
+                                    const missingRaw = col.missingPercentage !== undefined ? col.missingPercentage : (col.missing_percentage !== undefined ? col.missing_percentage : (col.nullPercentage !== undefined ? col.nullPercentage : 'N/A'));
+                                    return {
+                                        name: String(name),
+                                        type: String(type),
+                                        cardinality: String(cardinality),
+                                        missing: String(missingRaw)
+                                    };
+                                }
+                                return {
+                                    name: 'column_' + (index + 1),
+                                    type: 'N/A',
+                                    cardinality: 'N/A',
+                                    missing: 'N/A'
+                                };
+                            });
+                        }
+
+                        if (rawColumns && typeof rawColumns === 'object') {
+                            return Object.keys(rawColumns).map(function (key) {
+                                const col = rawColumns[key] || {};
+                                const type = col.type || col.dataType || col.data_type || 'N/A';
+                                const cardinality = col.cardinality !== undefined ? col.cardinality : 'N/A';
+                                const missing = col.missingPercentage !== undefined ? col.missingPercentage : (col.missing_percentage !== undefined ? col.missing_percentage : 'N/A');
+                                return {
+                                    name: key,
+                                    type: String(type),
+                                    cardinality: String(cardinality),
+                                    missing: String(missing)
+                                };
+                            });
+                        }
+
+                        return [];
+                    }
+
+                    function formatMetadataValue(value) {
+                        if (value === null || value === undefined) {
+                            return 'N/A';
+                        }
+                        if (Array.isArray(value)) {
+                            return value.length === 0 ? '[]' : value.slice(0, 5).map(function (v) { return String(v); }).join(', ') + (value.length > 5 ? ' ...' : '');
+                        }
+                        if (typeof value === 'object') {
+                            return JSON.stringify(value);
+                        }
+                        return String(value);
+                    }
+
+                    function escapeHtml(text) {
+                        return String(text)
+                            .replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/"/g, '&quot;')
+                            .replace(/'/g, '&#039;');
+                    }
+
+                    if (statusTable.dataset.hasPending === 'true') {
+                        setTimeout(function () {
+                            location.reload();
+                        }, 7000);
+                    }
+                })();
             </script>
 
             <div class="upload-card" th:if="${currentStep == 4}">
@@ -199,19 +424,28 @@
                 <p class="step-note">Choose who can view this dataset after publishing.</p>
 
                 <form th:action="@{'/upload/' + ${dataset.datasetId} + '/permissions'}" method="post">
-                    <div class="permission-options">
-                        <label class="permission-option" th:each="level : ${accessLevels}">
+                    <div class="permission-options permission-options-polished">
+                        <label class="permission-option permission-card" th:each="level : ${accessLevels}">
                             <input type="radio"
                                    name="accessLevel"
                                    th:value="${level}"
                                    th:checked="${dataset.accessLevel == level}">
-                            <div>
-                                <strong th:text="${level}">PRIVATE</strong>
-                                <p th:if="${level.name() == 'PUBLIC'}">Anyone can see this dataset on the main website.</p>
-                                <p th:if="${level.name() == 'PRIVATE'}">Only you can view this dataset.</p>
-                                <p th:if="${level.name() == 'AUTHORIZED'}">Only users you authorize can view this dataset.</p>
+                            <div class="permission-content">
+                                <div class="permission-header">
+                                    <strong th:text="${level.name() == 'PUBLIC' ? 'Public Access' : (level.name() == 'PRIVATE' ? 'Private Access' : 'Authorized Access')}">Private Access</strong>
+                                    <span class="permission-chip"
+                                          th:text="${level.name()}">PRIVATE</span>
+                                </div>
+                                <p th:if="${level.name() == 'PUBLIC'}">Anyone can discover and view this dataset from the platform.</p>
+                                <p th:if="${level.name() == 'PRIVATE'}">Only you can access this dataset until you change visibility.</p>
+                                <p th:if="${level.name() == 'AUTHORIZED'}">Restrict dataset access to users you explicitly approve.</p>
                             </div>
                         </label>
+                    </div>
+
+                    <div class="authorized-preview" th:if="${dataset.accessLevel != null and dataset.accessLevel.name() == 'AUTHORIZED'}">
+                        <h4>Authorized Users</h4>
+                        <p>Add and manage individual users from dataset detail after publishing. Current mode is restricted access.</p>
                     </div>
 
                     <div class="upload-actions">

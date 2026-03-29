@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Log - DataHub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div class="app-layout">
+    <div th:replace="~{fragments/sidebar :: sidebar('activity-log')}"></div>
+
+    <div class="main-content">
+        <div th:replace="~{fragments/header :: header}"></div>
+
+        <div class="page-content">
+            <div class="breadcrumb">
+                <a th:href="@{/dashboard}">Home</a>
+                <i data-lucide="chevron-right" class="breadcrumb-sep"></i>
+                <span>Activity Log</span>
+            </div>
+
+            <div class="section-header" style="margin-top: 8px;">
+                <h2><i data-lucide="history" class="section-icon"></i> Activity Log</h2>
+                <a th:href="@{/activity-log/export(userId=${selectedUserId}, action=${selectedAction}, startDate=${startDate}, endDate=${endDate})}">Export CSV <i data-lucide="download"></i></a>
+            </div>
+
+            <form method="get" th:action="@{/activity-log}" class="upload-card" style="margin-top: 16px;">
+                <div class="form-row" style="display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap:12px;">
+                    <div class="form-group" style="margin:0;">
+                        <label for="userId">User</label>
+                        <select id="userId" name="userId">
+                            <option value="">All users</option>
+                            <option th:each="u : ${allUsers}" th:value="${u.userId}" th:selected="${selectedUserId != null && selectedUserId == u.userId}" th:text="${u.fullName != null ? u.fullName : u.username}"></option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label for="action">Action</label>
+                        <input id="action" name="action" th:value="${selectedAction}" placeholder="DATASET_VIEWED">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label for="startDate">Start Date</label>
+                        <input id="startDate" name="startDate" type="date" th:value="${startDate}">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label for="endDate">End Date</label>
+                        <input id="endDate" name="endDate" type="date" th:value="${endDate}">
+                    </div>
+                </div>
+                <div class="upload-actions" style="margin-top:16px;">
+                    <button type="submit" class="btn-next">Apply Filters</button>
+                    <a class="btn-next btn-light" th:href="@{/activity-log}">Reset</a>
+                </div>
+            </form>
+
+            <div class="stats-grid" style="margin-top:16px; display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap:12px;">
+                <div class="section-card"><h4>Total</h4><p th:text="${totalActivities}">0</p></div>
+                <div class="section-card"><h4>Downloads</h4><p th:text="${downloadCount}">0</p></div>
+                <div class="section-card"><h4>Views</h4><p th:text="${viewCount}">0</p></div>
+                <div class="section-card"><h4>Edits</h4><p th:text="${editCount}">0</p></div>
+            </div>
+
+            <div class="upload-card" style="margin-top:16px;">
+                <div class="metadata-table-wrapper">
+                    <table class="simple-table">
+                        <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Dataset</th>
+                            <th>Details</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="log : ${logs}">
+                            <td th:text="${#temporals.format(log.timestamp, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                            <td th:text="${log.user != null ? (log.user.fullName != null ? log.user.fullName : log.user.username) : 'System'}"></td>
+                            <td><span class="badge badge-default" th:text="${log.action}"></span></td>
+                            <td th:text="${log.dataset != null ? log.dataset.name : 'N/A'}"></td>
+                            <td th:text="${log.details != null ? log.details : 'N/A'}"></td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(logs)}">
+                            <td colspan="5">No activity records found.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="upload-actions" style="margin-top:16px;" th:if="${totalPages > 1}">
+                <a class="btn-next btn-light" th:if="${currentPage > 0}" th:href="@{/activity-log(page=${currentPage - 1}, userId=${selectedUserId}, action=${selectedAction}, startDate=${startDate}, endDate=${endDate})}">Previous</a>
+                <span class="step-note">Page <span th:text="${currentPage + 1}"></span> of <span th:text="${totalPages}"></span></span>
+                <a class="btn-next btn-light" th:if="${currentPage + 1 < totalPages}" th:href="@{/activity-log(page=${currentPage + 1}, userId=${selectedUserId}, action=${selectedAction}, startDate=${startDate}, endDate=${endDate})}">Next</a>
+            </div>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/main.js}"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

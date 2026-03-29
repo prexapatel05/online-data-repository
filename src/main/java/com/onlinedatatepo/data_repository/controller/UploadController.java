@@ -1,14 +1,9 @@
 package com.onlinedatatepo.data_repository.controller;
 
-import com.onlinedatatepo.data_repository.entity.AccessLevel;
-import com.onlinedatatepo.data_repository.entity.Dataset;
-import com.onlinedatatepo.data_repository.entity.DatasetFile;
-import com.onlinedatatepo.data_repository.entity.DatasetFileCategory;
-import com.onlinedatatepo.data_repository.entity.User;
-import com.onlinedatatepo.data_repository.service.AuthService;
-import com.onlinedatatepo.data_repository.service.DatasetService;
-import com.onlinedatatepo.data_repository.service.FileUploadService;
-import jakarta.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -19,9 +14,18 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import com.onlinedatatepo.data_repository.entity.AccessLevel;
+import com.onlinedatatepo.data_repository.entity.Dataset;
+import com.onlinedatatepo.data_repository.entity.DatasetFile;
+import com.onlinedatatepo.data_repository.entity.DatasetFileCategory;
+import com.onlinedatatepo.data_repository.entity.DatasetTable;
+import com.onlinedatatepo.data_repository.entity.MetadataExtractionStatus;
+import com.onlinedatatepo.data_repository.entity.User;
+import com.onlinedatatepo.data_repository.service.AuthService;
+import com.onlinedatatepo.data_repository.service.DatasetService;
+import com.onlinedatatepo.data_repository.service.FileUploadService;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @Controller
 public class UploadController {
@@ -56,8 +60,11 @@ public class UploadController {
         try {
             User user = authService.findByEmail(authentication.getName());
 
+            String resolvedName = resolveDatasetName(datasetName, file);
+            String resolvedDescription = description == null ? "" : description.trim();
+
             Dataset dataset = datasetService.createDataset(
-                    datasetName, description, null, AccessLevel.PRIVATE, user);
+                resolvedName, resolvedDescription, null, AccessLevel.PRIVATE, user);
 
             fileUploadService.uploadFileForNewDataset(file, dataset);
             redirectAttributes.addFlashAttribute("success",
@@ -67,6 +74,28 @@ public class UploadController {
             redirectAttributes.addFlashAttribute("error", "Upload failed: " + e.getMessage());
             return "redirect:/upload";
         }
+    }
+
+    private String resolveDatasetName(String datasetName, MultipartFile file) {
+        if (datasetName != null) {
+            String trimmed = datasetName.trim();
+            if (!trimmed.isEmpty() && !"Untitled Dataset".equalsIgnoreCase(trimmed)) {
+                return trimmed;
+            }
+        }
+
+        if (file != null && file.getOriginalFilename() != null) {
+            String original = file.getOriginalFilename().trim();
+            if (!original.isEmpty()) {
+                int dotIndex = original.lastIndexOf('.');
+                if (dotIndex > 0) {
+                    return original.substring(0, dotIndex);
+                }
+                return original;
+            }
+        }
+
+        return "Untitled Dataset";
     }
 
     @GetMapping("/upload/{datasetId}/documents")
@@ -142,7 +171,10 @@ public class UploadController {
         model.addAttribute("documentCategories", getDocumentCategories());
         model.addAttribute("accessLevels", AccessLevel.values());
         model.addAttribute("additionalDocuments", getAdditionalDocuments(datasetId));
-        model.addAttribute("datasetTables", datasetService.getTablesByDatasetId(datasetId));
+        List<DatasetTable> datasetTables = datasetService.getTablesByDatasetId(datasetId);
+        model.addAttribute("datasetTables", datasetTables);
+        model.addAttribute("hasPendingExtraction", datasetTables.stream()
+            .anyMatch(table -> table.getMetadataExtractionStatus() == MetadataExtractionStatus.PENDING));
         model.addAttribute("basePath", request.getContextPath());
         return "upload";
     }

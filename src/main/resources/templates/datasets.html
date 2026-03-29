@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datasets - DataHub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div class="app-layout">
+    <div th:replace="~{fragments/sidebar :: sidebar('datasets')}"></div>
+
+    <div class="main-content">
+        <div th:replace="~{fragments/header :: header}"></div>
+
+        <div class="page-content">
+            <div class="breadcrumb">
+                <a th:href="@{/dashboard}">Home</a>
+                <i data-lucide="chevron-right" class="breadcrumb-sep"></i>
+                <span>Datasets</span>
+            </div>
+
+            <div class="section-header" style="margin-top: 8px;">
+                <h2><i data-lucide="database" class="section-icon"></i> Browse Datasets</h2>
+                <a th:href="@{/upload}">Upload Dataset <i data-lucide="arrow-right"></i></a>
+            </div>
+
+            <form method="get" th:action="@{/datasets}" class="upload-card" style="margin-top: 16px;">
+                <div class="form-row" style="display:grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px;">
+                    <div class="form-group" style="margin:0;">
+                        <label for="search">Search</label>
+                        <input id="search" name="search" th:value="${search}" placeholder="Name, description, tag">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label for="category">Category</label>
+                        <input id="category" name="category" th:value="${category}" placeholder="Healthcare, Education...">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label for="ownerId">Owner</label>
+                        <select id="ownerId" name="ownerId">
+                            <option value="">All owners</option>
+                            <option th:each="owner : ${owners}" th:value="${owner.userId}" th:selected="${ownerId != null && ownerId == owner.userId}" th:text="${owner.fullName != null ? owner.fullName : owner.username}"></option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label for="format">Format</label>
+                        <select id="format" name="format">
+                            <option value="">All formats</option>
+                            <option value="CSV" th:selected="${format == 'CSV'}">CSV</option>
+                            <option value="TSV" th:selected="${format == 'TSV'}">TSV</option>
+                            <option value="XLSX" th:selected="${format == 'XLSX'}">Excel</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label for="visibility">Visibility</label>
+                        <select id="visibility" name="visibility">
+                            <option value="">All visibility</option>
+                            <option value="PUBLIC" th:selected="${visibility == 'PUBLIC'}">Public</option>
+                            <option value="PRIVATE" th:selected="${visibility == 'PRIVATE'}">Private</option>
+                            <option value="AUTHORIZED" th:selected="${visibility == 'AUTHORIZED'}">Authorized</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="upload-actions" style="margin-top: 16px;">
+                    <button type="submit" class="btn-next">Apply Filters</button>
+                    <a class="btn-next btn-light" th:href="@{/datasets}">Reset</a>
+                </div>
+            </form>
+
+            <div class="section-header" style="margin-top: 20px;">
+                <h3>Results (<span th:text="${totalItems}">0</span>)</h3>
+            </div>
+
+            <div class="dataset-grid">
+                <a th:each="dataset : ${datasets}" th:href="@{'/datasets/' + ${dataset.datasetId}}" class="dataset-card" style="text-decoration:none; color:inherit;">
+                    <div class="dataset-card-header">
+                        <h3 th:text="${dataset.name}">Dataset</h3>
+                        <span class="badge badge-default" th:text="${dataset.accessLevel}">PUBLIC</span>
+                    </div>
+                    <p th:text="${dataset.description != null ? (dataset.description.length() > 110 ? dataset.description.substring(0,110) + '...' : dataset.description) : 'No description available'}"></p>
+                    <div class="dataset-tags" th:if="${dataset.tag != null && !dataset.tag.isBlank()}">
+                        <span class="tag" th:each="tag, iter : ${dataset.tag.split(',')}" th:if="${iter.index < 3}" th:text="${tag.trim()}">tag</span>
+                    </div>
+                    <div class="dataset-card-footer">
+                        <div class="dataset-stats">
+                            <span><i data-lucide="calendar"></i> <span th:text="${#temporals.format(dataset.createdAt, 'MMM dd')}"/></span>
+                        </div>
+                        <span class="dataset-author">by <strong th:text="${dataset.user.fullName != null ? dataset.user.fullName : dataset.user.username}"></strong></span>
+                    </div>
+                </a>
+
+                <div th:if="${#lists.isEmpty(datasets)}" class="dataset-card" style="grid-column: 1/-1; text-align:center; padding:40px;">
+                    <p style="color:#6b7c8a;">No datasets found for current filters.</p>
+                </div>
+            </div>
+
+            <div class="upload-actions" style="margin-top: 16px;" th:if="${totalPages > 1}">
+                <a class="btn-next btn-light" th:if="${currentPage > 0}" th:href="@{/datasets(page=${currentPage - 1}, search=${search}, category=${category}, ownerId=${ownerId}, format=${format}, visibility=${visibility})}">Previous</a>
+                <span class="step-note">Page <span th:text="${currentPage + 1}"></span> of <span th:text="${totalPages}"></span></span>
+                <a class="btn-next btn-light" th:if="${currentPage + 1 < totalPages}" th:href="@{/datasets(page=${currentPage + 1}, search=${search}, category=${category}, ownerId=${ownerId}, format=${format}, visibility=${visibility})}">Next</a>
+            </div>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/main.js}"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

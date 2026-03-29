@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Query Builder - DataHub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div class="app-layout">
+    <div th:replace="~{fragments/sidebar :: sidebar('query')}"></div>
+
+    <div class="main-content">
+        <div th:replace="~{fragments/header :: header}"></div>
+
+        <div class="page-content">
+            <div class="breadcrumb">
+                <a th:href="@{/dashboard}">Home</a>
+                <i data-lucide="chevron-right" class="breadcrumb-sep"></i>
+                <span>Query Builder</span>
+            </div>
+
+            <h1 class="page-title">Query Builder</h1>
+            <p class="page-subtitle">Select columns and apply filters to query your datasets</p>
+
+            <div th:if="${error}" class="alert alert-error"><span th:text="${error}"></span></div>
+
+            <form method="post" th:action="@{/query-builder/execute}" id="queryBuilderForm" style="margin-top:16px;">
+                <div class="query-card">
+                    <h3>Select Dataset</h3>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <select id="datasetId" name="datasetId" required onchange="this.form.submit()">
+                            <option value="">Select dataset</option>
+                            <option th:each="dataset : ${datasets}" th:value="${dataset.datasetId}" th:selected="${selectedDatasetId != null && selectedDatasetId == dataset.datasetId}" th:text="${dataset.name}"></option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="query-card" th:if="${availableColumns != null}">
+                    <h3>Select Columns</h3>
+                    <div class="qb-columns-grid">
+                        <label class="qb-column-item" th:each="column : ${availableColumns}">
+                            <input type="checkbox" name="selectedColumns" th:value="${column}" th:checked="${selectedColumns != null && #lists.contains(selectedColumns, column)}">
+                            <span th:text="${column}"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="query-card" th:if="${availableColumns != null}">
+                    <div class="qb-filters-header">
+                        <h3>Add Filters</h3>
+                        <button type="button" class="btn-next btn-light qb-add-btn" id="addConditionBtn">Add Condition</button>
+                    </div>
+                    <div id="filterRows">
+                        <div class="qb-filter-row" th:each="filter : ${filters}">
+                            <select name="filterColumn" class="qb-filter-column">
+                                <option value="">Column</option>
+                                <option th:each="column : ${availableColumns}" th:value="${column}" th:selected="${filter.column == column}" th:text="${column}"></option>
+                            </select>
+                            <select name="filterOperator" class="qb-filter-operator">
+                                <option value="=" th:selected="${filter.operator == '='}">Equals</option>
+                                <option value="!=" th:selected="${filter.operator == '!='}">Not equal</option>
+                                <option value=">" th:selected="${filter.operator == '>'}">Greater than</option>
+                                <option value=">=" th:selected="${filter.operator == '>='}">Greater equal</option>
+                                <option value="<" th:selected="${filter.operator == '<'}">Less than</option>
+                                <option value="<=" th:selected="${filter.operator == '<='}">Less equal</option>
+                                <option value="contains" th:selected="${filter.operator == 'contains'}">Contains</option>
+                            </select>
+                            <input name="filterValue" th:value="${filter.value}" placeholder="Value" class="qb-filter-value">
+                            <button type="button" class="qb-remove-btn js-remove-filter">Remove</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="qb-actions" th:if="${availableColumns != null}">
+                    <button type="button" class="btn-next btn-light" id="viewSqlBtn">View SQL</button>
+                    <button type="submit" class="btn-next">Run Query</button>
+                </div>
+            </form>
+
+            <div class="query-card" style="margin-top:16px;" th:if="${result != null}" id="queryResultsCard">
+                <div class="qb-results-header">
+                    <div>
+                        <h3>Query Results</h3>
+                        <p class="step-note" style="margin:4px 0 0;">Showing <span th:text="${#lists.size(result.rows)}">0</span> rows</p>
+                    </div>
+                    <form method="post" th:action="@{/query-builder/export}" class="qb-export-actions">
+                        <input type="hidden" name="datasetId" th:value="${selectedDatasetId}">
+                        <input type="hidden" name="selectedColumns" th:each="col : ${selectedColumns}" th:value="${col}">
+                        <input type="hidden" name="filterColumn" th:each="f : ${filters}" th:value="${f.column}">
+                        <input type="hidden" name="filterOperator" th:each="f : ${filters}" th:value="${f.operator}">
+                        <input type="hidden" name="filterValue" th:each="f : ${filters}" th:value="${f.value}">
+                        <button type="submit" class="btn-next btn-light" name="exportFormat" value="csv">Export CSV</button>
+                        <button type="submit" class="btn-next btn-light" name="exportFormat" value="tsv">Export TSV</button>
+                        <button type="button" class="btn-next btn-light" disabled>Export Excel</button>
+                    </form>
+                </div>
+
+                <div class="qb-sql-preview" id="sqlPreviewBox">
+                    <strong>SQL Preview</strong>
+                    <code th:text="${result.sqlPreview}"></code>
+                </div>
+
+                <div class="metadata-table-wrapper">
+                    <table class="simple-table">
+                        <thead>
+                        <tr>
+                            <th th:each="column : ${result.columns}" th:text="${column}"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="row : ${result.rows}">
+                            <td th:each="entry : ${row.entrySet()}" th:text="${entry.value}"></td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(result.rows)}">
+                            <td th:colspan="${#lists.size(result.columns)}">No rows matched current filters.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="step-note" th:if="${result.truncated}">Export results were truncated to the max server cap.</p>
+            </div>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/main.js}"></script>
+<script th:if="${availableColumns != null}">
+    (function () {
+        const filterRows = document.getElementById('filterRows');
+        const addBtn = document.getElementById('addConditionBtn');
+        const viewSqlBtn = document.getElementById('viewSqlBtn');
+        const sqlPreviewBox = document.getElementById('sqlPreviewBox');
+
+        if (!filterRows) {
+            return;
+        }
+
+        function bindRemoveButtons() {
+            const removeButtons = filterRows.querySelectorAll('.js-remove-filter');
+            removeButtons.forEach(function (btn) {
+                btn.onclick = function () {
+                    const rows = filterRows.querySelectorAll('.qb-filter-row');
+                    if (rows.length <= 1) {
+                        return;
+                    }
+                    const row = btn.closest('.qb-filter-row');
+                    if (row) {
+                        row.remove();
+                    }
+                };
+            });
+        }
+
+        if (addBtn) {
+            addBtn.addEventListener('click', function () {
+                const firstRow = filterRows.querySelector('.qb-filter-row');
+                if (!firstRow) {
+                    return;
+                }
+                const clone = firstRow.cloneNode(true);
+                clone.querySelectorAll('select').forEach(function (select) {
+                    select.selectedIndex = 0;
+                });
+                clone.querySelectorAll('input').forEach(function (input) {
+                    input.value = '';
+                });
+                filterRows.appendChild(clone);
+                bindRemoveButtons();
+            });
+        }
+
+        if (viewSqlBtn) {
+            viewSqlBtn.addEventListener('click', function () {
+                if (sqlPreviewBox) {
+                    sqlPreviewBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    sqlPreviewBox.classList.add('qb-sql-highlight');
+                    setTimeout(function () {
+                        sqlPreviewBox.classList.remove('qb-sql-highlight');
+                    }, 1200);
+                } else {
+                    alert('Run query to generate SQL preview.');
+                }
+            });
+        }
+
+        bindRemoveButtons();
+    })();
+</script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

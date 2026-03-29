@@ -13,6 +13,7 @@ import com.onlinedatatepo.data_repository.entity.AccessLevel;
 import com.onlinedatatepo.data_repository.entity.Dataset;
 import com.onlinedatatepo.data_repository.entity.DatasetStatus;
 import com.onlinedatatepo.data_repository.entity.DatasetTable;
+import com.onlinedatatepo.data_repository.entity.FileType;
 import com.onlinedatatepo.data_repository.entity.User;
 import com.onlinedatatepo.data_repository.repository.DatasetRepository;
 import com.onlinedatatepo.data_repository.repository.DatasetTableRepository;
@@ -39,6 +40,37 @@ public class DatasetService {
     public List<Dataset> getTrendingDatasets(int limit) {
         Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "createdAt"));
         return datasetRepository.findByAccessLevel(AccessLevel.PUBLIC, pageable).getContent();
+    }
+
+    public List<Dataset> getTrendingDatasetsForDashboard(Integer currentUserId,
+                                                         String search,
+                                                         String category,
+                                                         int limit) {
+        Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return datasetRepository.searchTrendingForDashboard(
+                currentUserId,
+                normalizeFilter(search),
+                normalizeFilter(category),
+                pageable
+        ).getContent();
+    }
+
+    public Page<Dataset> searchAccessibleDatasets(Integer currentUserId,
+                                                  String search,
+                                                  String category,
+                                                  Integer ownerId,
+                                                  AccessLevel visibility,
+                                                  FileType fileType,
+                                                  Pageable pageable) {
+        return datasetRepository.searchAccessibleDatasets(
+                currentUserId,
+                normalizeFilter(search),
+                normalizeFilter(category),
+                ownerId,
+                visibility,
+                fileType,
+                pageable
+        );
     }
 
     public Dataset createDataset(String name, String description, String tag, AccessLevel accessLevel, User owner) {
@@ -71,5 +103,28 @@ public class DatasetService {
     public Dataset updateAccessLevel(Dataset dataset, AccessLevel accessLevel) {
         dataset.setAccessLevel(accessLevel);
         return datasetRepository.save(dataset);
+    }
+
+    public boolean canAccessDataset(User user, Dataset dataset) {
+        if (dataset.getUser().getUserId().equals(user.getUserId())) {
+            return true;
+        }
+        if (dataset.getAccessLevel() == AccessLevel.PUBLIC) {
+            return true;
+        }
+
+        if (dataset.getAccessLevel() == AccessLevel.AUTHORIZED && dataset.getAuthorizedUsers() != null) {
+            return dataset.getAuthorizedUsers().stream()
+                    .anyMatch(authorized -> authorized.getUserId().equals(user.getUserId()));
+        }
+
+        return false;
+    }
+
+    private String normalizeFilter(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 }

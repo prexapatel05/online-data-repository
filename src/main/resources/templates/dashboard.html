@@ -34,12 +34,13 @@
                     </div>
 
                     <!-- Search Bar -->
-                    <div class="search-bar">
-                        <input type="text" placeholder="Search datasets, researchers, topics...">
-                        <button class="btn-search">
+                    <form class="search-bar" method="get" th:action="@{/dashboard}">
+                        <input type="text" name="search" th:value="${selectedSearch}" placeholder="Search datasets, researchers, topics...">
+                        <input type="hidden" name="category" th:value="${selectedCategory}">
+                        <button class="btn-search" type="submit">
                             <i data-lucide="search"></i> Search
                         </button>
-                    </div>
+                    </form>
                 </div>
 
                 <!-- Action Buttons -->
@@ -47,29 +48,29 @@
                     <a th:href="@{/upload}" class="btn-new-dataset">
                         <i data-lucide="plus"></i> New Dataset
                     </a>
-                    <button class="btn-browse">Browse All Datasets</button>
+                    <a th:href="@{/datasets}" class="btn-browse">Browse All Datasets</a>
                 </div>
 
                 <!-- Category Tabs -->
                 <div class="category-tabs">
-                    <span class="category-tab active">All datasets</span>
-                    <span class="category-tab">Computer Science</span>
-                    <span class="category-tab">Healthcare</span>
-                    <span class="category-tab">Climate</span>
-                    <span class="category-tab">Economics</span>
-                    <span class="category-tab">Education</span>
-                    <span class="category-tab">Social Science</span>
+                    <a th:href="@{/dashboard(search=${selectedSearch})}" class="category-tab" th:classappend="${selectedCategory == null || selectedCategory == ''} ? ' active' : ''">All datasets</a>
+                    <a th:href="@{/dashboard(search=${selectedSearch}, category='Computer Science')}" class="category-tab" th:classappend="${selectedCategory == 'Computer Science'} ? ' active' : ''">Computer Science</a>
+                    <a th:href="@{/dashboard(search=${selectedSearch}, category='Healthcare')}" class="category-tab" th:classappend="${selectedCategory == 'Healthcare'} ? ' active' : ''">Healthcare</a>
+                    <a th:href="@{/dashboard(search=${selectedSearch}, category='Climate')}" class="category-tab" th:classappend="${selectedCategory == 'Climate'} ? ' active' : ''">Climate</a>
+                    <a th:href="@{/dashboard(search=${selectedSearch}, category='Economics')}" class="category-tab" th:classappend="${selectedCategory == 'Economics'} ? ' active' : ''">Economics</a>
+                    <a th:href="@{/dashboard(search=${selectedSearch}, category='Education')}" class="category-tab" th:classappend="${selectedCategory == 'Education'} ? ' active' : ''">Education</a>
+                    <a th:href="@{/dashboard(search=${selectedSearch}, category='Social Science')}" class="category-tab" th:classappend="${selectedCategory == 'Social Science'} ? ' active' : ''">Social Science</a>
                 </div>
 
                 <!-- Trending Datasets -->
                 <div class="section-header">
                     <h2><i data-lucide="trending-up" class="section-icon"></i> Trending Datasets</h2>
-                    <a href="#">See All <i data-lucide="arrow-right"></i></a>
+                    <a th:href="@{/datasets}">See All <i data-lucide="arrow-right"></i></a>
                 </div>
 
                 <div class="dataset-grid">
                     <!-- Dynamic dataset cards from DB -->
-                    <div th:each="dataset : ${trendingDatasets}" class="dataset-card">
+                    <a th:each="dataset : ${trendingDatasets}" th:href="@{'/datasets/' + ${dataset.datasetId}}" class="dataset-card" style="text-decoration:none; color:inherit;">
                         <div class="dataset-card-header">
                             <h3 th:text="${dataset.name}">Dataset Name</h3>
                             <span class="badge badge-default" th:text="${dataset.tag != null ? dataset.tag.split(',')[0].trim() : dataset.accessLevel}">Category</span>
@@ -88,7 +89,7 @@
                             </div>
                             <span class="dataset-author">by <strong th:text="${dataset.user.fullName != null ? dataset.user.fullName : dataset.user.username}">Author</strong></span>
                         </div>
-                    </div>
+                    </a>
 
                     <!-- Placeholder when no datasets -->
                     <div th:if="${#lists.isEmpty(trendingDatasets)}" class="dataset-card" style="grid-column: 1/-1; text-align:center; padding:40px;">
@@ -130,11 +131,11 @@
                             </div>
                             <span class="quick-link-arrow"><i data-lucide="chevron-right"></i></span>
                         </a>
-                        <a href="#" class="quick-link">
+                        <a th:href="@{/activity-log}" class="quick-link">
                             <div class="quick-link-icon"><i data-lucide="file-bar-chart"></i></div>
                             <div class="quick-link-info">
-                                <h4>View Reports</h4>
-                                <p>Generate insights</p>
+                                <h4>View Activity Log</h4>
+                                <p>Filter and export audit history</p>
                             </div>
                             <span class="quick-link-arrow"><i data-lucide="chevron-right"></i></span>
                         </a>

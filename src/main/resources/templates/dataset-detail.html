@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${dataset.name + ' - DataHub'}">Dataset Detail</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div class="app-layout">
+    <div th:replace="~{fragments/sidebar :: sidebar('datasets')}"></div>
+
+    <div class="main-content">
+        <div th:replace="~{fragments/header :: header}"></div>
+
+        <div class="page-content">
+            <div class="breadcrumb">
+                <a th:href="@{/dashboard}">Home</a>
+                <i data-lucide="chevron-right" class="breadcrumb-sep"></i>
+                <a th:href="@{/datasets}">Datasets</a>
+                <i data-lucide="chevron-right" class="breadcrumb-sep"></i>
+                <span th:text="${dataset.name}">Dataset</span>
+            </div>
+
+            <div class="section-header" style="margin-top: 10px;">
+                <h2 th:text="${dataset.name}">Dataset Name</h2>
+                <div class="dataset-stats">
+                    <span class="badge badge-default" th:text="${dataset.accessLevel}">PUBLIC</span>
+                    <span><i data-lucide="calendar"></i> <span th:text="${#temporals.format(dataset.createdAt, 'yyyy-MM-dd HH:mm')}"></span></span>
+                </div>
+            </div>
+            <p class="page-subtitle" th:text="${dataset.description != null ? dataset.description : 'No description available.'}"></p>
+
+            <div class="category-tabs" style="margin-top: 18px;">
+                <a class="category-tab" th:classappend="${tab == 'overview'} ? ' active' : ''" th:href="@{'/datasets/' + ${dataset.datasetId}(tab='overview')}">Overview</a>
+                <a class="category-tab" th:classappend="${tab == 'preview'} ? ' active' : ''" th:href="@{'/datasets/' + ${dataset.datasetId}(tab='preview')}">Data Preview</a>
+                <a class="category-tab" th:classappend="${tab == 'schema'} ? ' active' : ''" th:href="@{'/datasets/' + ${dataset.datasetId}(tab='schema')}">Schema</a>
+                <a class="category-tab" th:classappend="${tab == 'permissions'} ? ' active' : ''" th:href="@{'/datasets/' + ${dataset.datasetId}(tab='permissions')}">Permissions</a>
+                <a class="category-tab" th:classappend="${tab == 'activity'} ? ' active' : ''" th:href="@{'/datasets/' + ${dataset.datasetId}(tab='activity')}">Activity</a>
+                <a class="category-tab" th:classappend="${tab == 'statistics'} ? ' active' : ''" th:href="@{'/datasets/' + ${dataset.datasetId}(tab='statistics')}">Statistics</a>
+            </div>
+
+            <div class="upload-card" th:if="${tab == 'overview'}" style="margin-top: 16px;">
+                <h3>Overview</h3>
+                <p><strong>Owner:</strong> <span th:text="${dataset.user.fullName != null ? dataset.user.fullName : dataset.user.username}"></span></p>
+                <p><strong>Status:</strong> <span th:text="${dataset.status}"></span></p>
+                <p><strong>Tags:</strong>
+                    <span th:if="${dataset.tag != null && !dataset.tag.isBlank()}" th:text="${dataset.tag}"></span>
+                    <span th:if="${dataset.tag == null || dataset.tag.isBlank()}">No tags</span>
+                </p>
+                <p><strong>Tables:</strong> <span th:text="${#lists.size(tables)}"></span></p>
+            </div>
+
+            <div class="upload-card" th:if="${tab == 'preview'}" style="margin-top: 16px;">
+                <h3>Data Preview</h3>
+                <div class="metadata-table-wrapper" th:if="${!#lists.isEmpty(previewRows)}">
+                    <table class="simple-table">
+                        <thead>
+                        <tr>
+                            <th th:each="entry : ${previewRows[0].entrySet()}" th:text="${entry.key}"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="row : ${previewRows}">
+                            <td th:each="entry : ${row.entrySet()}" th:text="${entry.value}"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="placeholder-box" th:if="${#lists.isEmpty(previewRows)}">
+                    <p>No preview rows available yet.</p>
+                </div>
+            </div>
+
+            <div class="upload-card" th:if="${tab == 'schema'}" style="margin-top: 16px;">
+                <h3>Schema</h3>
+                <div class="metadata-table-wrapper" th:if="${!#lists.isEmpty(columns)}">
+                    <table class="simple-table">
+                        <thead>
+                        <tr>
+                            <th>Column Name</th>
+                            <th>Type</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="column : ${columns}">
+                            <td th:text="${column.columnName}"></td>
+                            <td><span class="badge badge-default" th:text="${column.columnType}"></span></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="placeholder-box" th:if="${#lists.isEmpty(columns)}">
+                    <p>No schema columns extracted yet.</p>
+                </div>
+            </div>
+
+            <div class="upload-card" th:if="${tab == 'permissions'}" style="margin-top: 16px;">
+                <h3>Permissions</h3>
+                <p><strong>Visibility:</strong> <span class="badge badge-default" th:text="${dataset.accessLevel}"></span></p>
+                <div class="document-list" style="margin-top: 12px;">
+                    <div class="document-item">
+                        <div><strong th:text="${dataset.user.fullName != null ? dataset.user.fullName : dataset.user.username}"></strong></div>
+                        <span class="document-type">Owner</span>
+                    </div>
+                    <div class="document-item" th:each="authorized : ${authorizedUsers}">
+                        <div><strong th:text="${authorized.fullName != null ? authorized.fullName : authorized.username}"></strong></div>
+                        <span class="document-type">Authorized</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="upload-card" th:if="${tab == 'activity'}" style="margin-top: 16px;">
+                <h3>Activity</h3>
+                <div class="metadata-table-wrapper">
+                    <table class="simple-table">
+                        <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Details</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="log : ${datasetActivity}">
+                            <td th:text="${#temporals.format(log.timestamp, 'yyyy-MM-dd HH:mm')}"></td>
+                            <td th:text="${log.user != null ? (log.user.fullName != null ? log.user.fullName : log.user.username) : 'System'}"></td>
+                            <td th:text="${log.action}"></td>
+                            <td th:text="${log.details != null ? log.details : 'N/A'}"></td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(datasetActivity)}">
+                            <td colspan="4">No activity entries yet.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="upload-card" th:if="${tab == 'statistics'}" style="margin-top: 16px;">
+                <h3>Statistics</h3>
+                <div class="stats-grid" style="display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;">
+                    <div class="section-card">
+                        <h4>Total Columns</h4>
+                        <p th:text="${statistics.totalColumns}">0</p>
+                    </div>
+                    <div class="section-card">
+                        <h4>Preview Rows</h4>
+                        <p th:text="${statistics.previewRows}">0</p>
+                    </div>
+                    <div class="section-card">
+                        <h4>Missing Values (Preview)</h4>
+                        <p th:text="${statistics.missingValues}">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/main.js}"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

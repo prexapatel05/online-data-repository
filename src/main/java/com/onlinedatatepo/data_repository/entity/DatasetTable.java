@@ -1,6 +1,5 @@
 package com.onlinedatatepo.data_repository.entity;
 
-import com.onlinedatatepo.data_repository.entity.MetadataExtractionStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
