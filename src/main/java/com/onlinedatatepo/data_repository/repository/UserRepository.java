@@ -1,10 +1,13 @@
 package com.onlinedatatepo.data_repository.repository;
 
-import com.onlinedatatepo.data_repository.entity.User;
+import java.util.Optional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
+import com.onlinedatatepo.data_repository.entity.User;
 
 /**
  * Repository for User entity.
@@ -32,4 +35,6 @@ public interface UserRepository extends JpaRepository<User, Integer> {
      * Check if a user exists by email.
      */
     boolean existsByEmail(String email);
+
+    Page<User> findAllByOrderByFullNameAsc(Pageable pageable);
 }

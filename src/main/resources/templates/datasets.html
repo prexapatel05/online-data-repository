@@ -76,7 +76,17 @@
                 <a th:each="dataset : ${datasets}" th:href="@{'/datasets/' + ${dataset.datasetId}}" class="dataset-card" style="text-decoration:none; color:inherit;">
                     <div class="dataset-card-header">
                         <h3 th:text="${dataset.name}">Dataset</h3>
-                        <span class="badge badge-default" th:text="${dataset.accessLevel}">PUBLIC</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="badge badge-default" th:text="${dataset.accessLevel}">PUBLIC</span>
+                            <span style="font-size: 0.85rem; color: #666;" th:if="${datasetStats[dataset.datasetId]}">
+                                <i data-lucide="eye" style="width: 14px; height: 14px; display: inline;"></i>
+                                <span th:text="${datasetStats[dataset.datasetId].viewCount}">0</span>
+                            </span>
+                            <span style="font-size: 0.85rem; color: #666;" th:if="${datasetStats[dataset.datasetId]}">
+                                <i data-lucide="file" style="width: 14px; height: 14px; display: inline;"></i>
+                                <span th:text="${datasetStats[dataset.datasetId].fileType}">CSV</span>
+                            </span>
+                        </div>
                     </div>
                     <p th:text="${dataset.description != null ? (dataset.description.length() > 110 ? dataset.description.substring(0,110) + '...' : dataset.description) : 'No description available'}"></p>
                     <div class="dataset-tags" th:if="${dataset.tag != null && !dataset.tag.isBlank()}">
@@ -84,6 +94,7 @@
                     </div>
                     <div class="dataset-card-footer">
                         <div class="dataset-stats">
+                            <span><i data-lucide="download"></i> <span th:if="${datasetStats[dataset.datasetId]}" th:text="${datasetStats[dataset.datasetId].downloadCount}">0</span><span th:unless="${datasetStats[dataset.datasetId]}">--</span></span>
                             <span><i data-lucide="calendar"></i> <span th:text="${#temporals.format(dataset.createdAt, 'MMM dd')}"/></span>
                         </div>
                         <span class="dataset-author">by <strong th:text="${dataset.user.fullName != null ? dataset.user.fullName : dataset.user.username}"></strong></span>

@@ -33,7 +33,17 @@
                 <a th:each="dataset : ${myDatasets}" th:href="@{'/datasets/' + ${dataset.datasetId}}" class="dataset-card" style="text-decoration:none; color:inherit;">
                     <div class="dataset-card-header">
                         <h3 th:text="${dataset.name}">Dataset Name</h3>
-                        <span class="badge badge-default" th:text="${dataset.accessLevel}">PRIVATE</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="badge badge-default" th:text="${dataset.accessLevel}">PRIVATE</span>
+                            <span style="font-size: 0.85rem; color: #666;" th:if="${datasetStats[dataset.datasetId]}">
+                                <i data-lucide="eye" style="width: 14px; height: 14px; display: inline;"></i>
+                                <span th:text="${datasetStats[dataset.datasetId].viewCount}">0</span>
+                            </span>
+                            <span style="font-size: 0.85rem; color: #666;" th:if="${datasetStats[dataset.datasetId]}">
+                                <i data-lucide="file" style="width: 14px; height: 14px; display: inline;"></i>
+                                <span th:text="${datasetStats[dataset.datasetId].fileType}">CSV</span>
+                            </span>
+                        </div>
                     </div>
                     <p th:text="${dataset.description != null ? (dataset.description.length() > 100 ? dataset.description.substring(0, 100) + '...' : dataset.description) : 'No description available'}">
                         Dataset description goes here...
@@ -43,6 +53,7 @@
                     </div>
                     <div class="dataset-card-footer">
                         <div class="dataset-stats">
+                            <span><i data-lucide="download"></i> <span th:if="${datasetStats[dataset.datasetId]}" th:text="${datasetStats[dataset.datasetId].downloadCount}">0</span><span th:unless="${datasetStats[dataset.datasetId]}">--</span></span>
                             <span><i data-lucide="calendar"></i> <span th:text="${#temporals.format(dataset.createdAt, 'MMM dd')}">Jan 01</span></span>
                         </div>
                         <span class="dataset-author">Status: <strong th:text="${dataset.status}">PENDING</strong></span>
@@ -54,6 +65,16 @@
                 </div>
             </div>
 
+                <div class="upload-actions" style="margin-top: 12px;" th:if="${myTotalPages > 1}">
+                     <a class="btn-next btn-light"
+                         th:if="${myCurrentPage > 0}"
+                         th:href="@{/my-datasets(myPage=${myCurrentPage - 1}, sharedPage=${sharedCurrentPage})}">Previous</a>
+                     <span class="step-note">Owned page <span th:text="${myCurrentPage + 1}">1</span> of <span th:text="${myTotalPages}">1</span></span>
+                     <a class="btn-next btn-light"
+                         th:if="${myCurrentPage + 1 < myTotalPages}"
+                         th:href="@{/my-datasets(myPage=${myCurrentPage + 1}, sharedPage=${sharedCurrentPage})}">Next</a>
+                </div>
+
             <div class="section-header" style="margin-top: 24px;">
                 <h2><i data-lucide="users" class="section-icon"></i> Shared With Me</h2>
                 <a th:href="@{/datasets}">Browse All <i data-lucide="arrow-right"></i></a>
@@ -63,7 +84,17 @@
                 <a th:each="dataset : ${sharedWithMeDatasets}" th:href="@{'/datasets/' + ${dataset.datasetId}}" class="dataset-card" style="text-decoration:none; color:inherit;">
                     <div class="dataset-card-header">
                         <h3 th:text="${dataset.name}">Dataset Name</h3>
-                        <span class="badge badge-default" th:text="${dataset.accessLevel}">AUTHORIZED</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="badge badge-default" th:text="${dataset.accessLevel}">AUTHORIZED</span>
+                            <span style="font-size: 0.85rem; color: #666;" th:if="${datasetStats[dataset.datasetId]}">
+                                <i data-lucide="eye" style="width: 14px; height: 14px; display: inline;"></i>
+                                <span th:text="${datasetStats[dataset.datasetId].viewCount}">0</span>
+                            </span>
+                            <span style="font-size: 0.85rem; color: #666;" th:if="${datasetStats[dataset.datasetId]}">
+                                <i data-lucide="file" style="width: 14px; height: 14px; display: inline;"></i>
+                                <span th:text="${datasetStats[dataset.datasetId].fileType}">CSV</span>
+                            </span>
+                        </div>
                     </div>
                     <p th:text="${dataset.description != null ? (dataset.description.length() > 100 ? dataset.description.substring(0, 100) + '...' : dataset.description) : 'No description available'}">
                         Dataset description goes here...
@@ -73,6 +104,7 @@
                     </div>
                     <div class="dataset-card-footer">
                         <div class="dataset-stats">
+                            <span><i data-lucide="download"></i> <span th:if="${datasetStats[dataset.datasetId]}" th:text="${datasetStats[dataset.datasetId].downloadCount}">0</span><span th:unless="${datasetStats[dataset.datasetId]}">--</span></span>
                             <span><i data-lucide="calendar"></i> <span th:text="${#temporals.format(dataset.createdAt, 'MMM dd')}">Jan 01</span></span>
                         </div>
                         <span class="dataset-author">Owner: <strong th:text="${dataset.user.fullName != null ? dataset.user.fullName : dataset.user.username}">Owner</strong></span>
@@ -82,6 +114,16 @@
                 <div th:if="${#lists.isEmpty(sharedWithMeDatasets)}" class="dataset-card" style="grid-column: 1/-1; text-align:center; padding:40px;">
                     <p style="color:#6b7c8a;">No datasets have been shared with you yet.</p>
                 </div>
+            </div>
+
+            <div class="upload-actions" style="margin-top: 12px;" th:if="${sharedTotalPages > 1}">
+                <a class="btn-next btn-light"
+                   th:if="${sharedCurrentPage > 0}"
+                   th:href="@{/my-datasets(myPage=${myCurrentPage}, sharedPage=${sharedCurrentPage - 1})}">Previous</a>
+                <span class="step-note">Shared page <span th:text="${sharedCurrentPage + 1}">1</span> of <span th:text="${sharedTotalPages}">1</span></span>
+                <a class="btn-next btn-light"
+                   th:if="${sharedCurrentPage + 1 < sharedTotalPages}"
+                   th:href="@{/my-datasets(myPage=${myCurrentPage}, sharedPage=${sharedCurrentPage + 1})}">Next</a>
             </div>
         </div>
     </div>

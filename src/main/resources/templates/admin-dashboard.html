@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Analytics - DataHub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div class="app-layout">
+    <div th:replace="~{fragments/sidebar :: sidebar('admin')}"></div>
+
+    <div class="main-content">
+        <div th:replace="~{fragments/header :: header}"></div>
+
+        <div class="page-content">
+            <div class="breadcrumb">
+                <a th:href="@{/dashboard}">Home</a>
+                <i data-lucide="chevron-right" class="breadcrumb-sep"></i>
+                <span>Admin Analytics</span>
+            </div>
+
+            <h1 class="page-title">Admin Panel</h1>
+            
+            <div class="dataset-stat-grid" style="margin-top: 16px;">
+                <div class="section-card dataset-stat-card">
+                    <h4>Total Users</h4>
+                    <p th:text="${totalUsers}">0</p>
+                </div>
+                <div class="section-card dataset-stat-card">
+                    <h4>Total Datasets</h4>
+                    <p th:text="${totalDatasets}">0</p>
+                </div>
+                <div class="section-card dataset-stat-card">
+                    <h4>Total Views</h4>
+                    <p th:text="${totalViews}">0</p>
+                </div>
+                <div class="section-card dataset-stat-card">
+                    <h4>Total Downloads</h4>
+                    <p th:text="${totalDownloads}">0</p>
+                </div>
+            </div>
+
+            <div class="bottom-sections" style="margin-top:16px; grid-template-columns: 2fr 1fr;">
+                <div class="section-card">
+                    <h3>Dataset Growth Timeline</h3>
+                    <div class="admin-growth-chart-wrap">
+                        <canvas id="growthChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <h3>Top Active Users</h3>
+                    <div class="metadata-table-wrapper">
+                        <table class="simple-table">
+                            <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="u : ${topActiveUsers}">
+                                <td th:text="${u.displayName}">User</td>
+                                <td th:text="${u.total}">0</td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(topActiveUsers)}">
+                                <td colspan="2">No activity data.</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bottom-sections" style="margin-top:16px; grid-template-columns: 1fr 1fr;">
+                <div class="section-card">
+                    <h3>Top Datasets by Views</h3>
+                    <div class="metadata-table-wrapper">
+                        <table class="simple-table">
+                            <thead>
+                            <tr>
+                                <th>Dataset</th>
+                                <th>Views</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="d : ${topViewedDatasets}">
+                                <td th:text="${d.datasetName}">Dataset</td>
+                                <td th:text="${d.total}">0</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="section-card">
+                    <h3>Top Datasets by Downloads</h3>
+                    <div class="metadata-table-wrapper">
+                        <table class="simple-table">
+                            <thead>
+                            <tr>
+                                <th>Dataset</th>
+                                <th>Downloads</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="d : ${topDownloadedDatasets}">
+                                <td th:text="${d.datasetName}">Dataset</td>
+                                <td th:text="${d.total}">0</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card" style="margin-top: 16px;">
+                <h3>Recent Activity (Last 30 Days, 50 rows/page)</h3>
+                <div class="metadata-table-wrapper">
+                    <table class="simple-table">
+                        <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Dataset</th>
+                            <th>Details</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="log : ${activityRows}">
+                            <td th:text="${#temporals.format(log.timestamp, 'yyyy-MM-dd HH:mm')}">2026-01-01 12:00</td>
+                            <td th:text="${log.user != null ? (log.user.fullName != null ? log.user.fullName : log.user.username) : 'System'}">User</td>
+                            <td th:text="${log.action}">ACTION</td>
+                            <td th:text="${log.dataset != null ? log.dataset.name : '-'}">Dataset</td>
+                            <td th:text="${log.details != null ? log.details : '-'}">Details</td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(activityRows)}">
+                            <td colspan="5">No activity rows found.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="upload-actions" style="margin-top: 12px;" th:if="${activityTotalPages > 1}">
+                    <a class="btn-next btn-light" th:if="${activityCurrentPage > 0}" th:href="@{/admin(page=${activityCurrentPage - 1})}">Previous</a>
+                    <span class="step-note">Page <span th:text="${activityCurrentPage + 1}">1</span> of <span th:text="${activityTotalPages}">1</span></span>
+                    <a class="btn-next btn-light" th:if="${activityCurrentPage + 1 < activityTotalPages}" th:href="@{/admin(page=${activityCurrentPage + 1})}">Next</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    const growthRows = /*[[${growthTimeline}]]*/ [];
+    const labels = growthRows.map(row => row.day);
+    const values = growthRows.map(row => row.total);
+
+    const chartEl = document.getElementById('growthChart');
+    if (chartEl) {
+        new Chart(chartEl, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Datasets Created',
+                    data: values,
+                    borderColor: '#0d9488',
+                    backgroundColor: 'rgba(13,148,136,0.12)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    }
+</script>
+<script th:src="@{/js/main.js}"></script>
+<script>lucide.createIcons();</script>
+<style>
+    .admin-growth-chart-wrap {
+        position: relative;
+        height: 280px;
+        min-height: 280px;
+        max-height: 280px;
+    }
+</style>
+</body>
+</html>

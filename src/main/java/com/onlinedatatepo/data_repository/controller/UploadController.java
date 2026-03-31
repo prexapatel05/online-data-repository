@@ -2,8 +2,8 @@ package com.onlinedatatepo.data_repository.controller;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.security.core.Authentication;
@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.onlinedatatepo.data_repository.config.DatasetTagCatalog;
 import com.onlinedatatepo.data_repository.entity.AccessLevel;
 import com.onlinedatatepo.data_repository.entity.Dataset;
 import com.onlinedatatepo.data_repository.entity.DatasetFile;
@@ -48,6 +49,7 @@ public class UploadController {
         User user = authService.findByEmail(authentication.getName());
         model.addAttribute("user", user);
         model.addAttribute("currentStep", 1);
+        model.addAttribute("availableTags", DatasetTagCatalog.TAGS);
         model.addAttribute("documentCategories", getDocumentCategories());
         model.addAttribute("accessLevels", AccessLevel.values());
         return "upload";
@@ -57,6 +59,7 @@ public class UploadController {
     public String startUpload(@RequestParam("file") MultipartFile file,
                               @RequestParam(value = "datasetName", required = false, defaultValue = "Untitled Dataset") String datasetName,
                               @RequestParam(value = "description", required = false, defaultValue = "") String description,
+                              @RequestParam(value = "tags", required = false) List<String> tags,
                               Authentication authentication,
                               RedirectAttributes redirectAttributes) {
         try {
@@ -64,9 +67,10 @@ public class UploadController {
 
             String resolvedName = resolveDatasetName(datasetName, file);
             String resolvedDescription = description == null ? "" : description.trim();
+            String normalizedTags = DatasetTagCatalog.normalizeSelectedTags(tags);
 
             Dataset dataset = datasetService.createDataset(
-                resolvedName, resolvedDescription, null, AccessLevel.PRIVATE, user);
+                resolvedName, resolvedDescription, normalizedTags, AccessLevel.PRIVATE, user);
 
             fileUploadService.uploadFileForNewDataset(file, dataset);
             redirectAttributes.addFlashAttribute("success",
@@ -115,6 +119,7 @@ public class UploadController {
         model.addAttribute("user", user);
         model.addAttribute("dataset", dataset);
         model.addAttribute("currentStep", 2);
+        model.addAttribute("availableTags", DatasetTagCatalog.TAGS);
         model.addAttribute("documentCategories", getDocumentCategories());
         model.addAttribute("accessLevels", AccessLevel.values());
         model.addAttribute("additionalDocuments", getAdditionalDocuments(datasetId));
@@ -179,6 +184,7 @@ public class UploadController {
         model.addAttribute("user", user);
         model.addAttribute("dataset", dataset);
         model.addAttribute("currentStep", 3);
+        model.addAttribute("availableTags", DatasetTagCatalog.TAGS);
         model.addAttribute("documentCategories", getDocumentCategories());
         model.addAttribute("accessLevels", AccessLevel.values());
         model.addAttribute("additionalDocuments", getAdditionalDocuments(datasetId));
@@ -205,6 +211,7 @@ public class UploadController {
         model.addAttribute("user", user);
         model.addAttribute("dataset", dataset);
         model.addAttribute("currentStep", 4);
+        model.addAttribute("availableTags", DatasetTagCatalog.TAGS);
         model.addAttribute("documentCategories", getDocumentCategories());
         model.addAttribute("accessLevels", AccessLevel.values());
         model.addAttribute("additionalDocuments", getAdditionalDocuments(datasetId));

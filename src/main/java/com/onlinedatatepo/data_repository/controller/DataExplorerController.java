@@ -114,7 +114,14 @@ public class DataExplorerController {
                 pageable
         );
 
+        // Get stats for each dataset
+        List<Integer> datasetIds = datasets.getContent().stream()
+                .map(Dataset::getDatasetId)
+                .toList();
+        var datasetStatsMap = datasetService.getDatasetStatsMap(datasetIds);
+
         model.addAttribute("datasets", datasets.getContent());
+        model.addAttribute("datasetStats", datasetStatsMap);
         model.addAttribute("totalPages", datasets.getTotalPages());
         model.addAttribute("currentPage", datasets.getNumber());
         model.addAttribute("totalItems", datasets.getTotalElements());
@@ -124,7 +131,7 @@ public class DataExplorerController {
         model.addAttribute("ownerId", ownerId);
         model.addAttribute("visibility", visibilityFilter != null ? visibilityFilter.name() : "");
         model.addAttribute("format", fileTypeFilter != null ? fileTypeFilter.name() : "");
-        model.addAttribute("owners", userRepository.findAll(Sort.by(Sort.Direction.ASC, "fullName")));
+        model.addAttribute("owners", userRepository.findAllByOrderByFullNameAsc(PageRequest.of(0, 200)).getContent());
 
         return "datasets";
     }

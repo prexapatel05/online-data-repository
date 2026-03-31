@@ -1,9 +1,11 @@
 package com.onlinedatatepo.data_repository.service;
 
-import java.util.List;
-import java.util.Optional;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.data.domain.Page;
@@ -13,12 +15,14 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.onlinedatatepo.data_repository.dto.DatasetStatsDTO;
 import com.onlinedatatepo.data_repository.entity.AccessLevel;
 import com.onlinedatatepo.data_repository.entity.Dataset;
 import com.onlinedatatepo.data_repository.entity.DatasetStatus;
 import com.onlinedatatepo.data_repository.entity.DatasetTable;
 import com.onlinedatatepo.data_repository.entity.FileType;
 import com.onlinedatatepo.data_repository.entity.User;
+import com.onlinedatatepo.data_repository.repository.AuditLogRepository;
 import com.onlinedatatepo.data_repository.repository.DatasetRepository;
 import com.onlinedatatepo.data_repository.repository.DatasetTableRepository;
 import com.onlinedatatepo.data_repository.repository.UserRepository;
@@ -29,13 +33,16 @@ public class DatasetService {
     private final DatasetRepository datasetRepository;
     private final DatasetTableRepository datasetTableRepository;
     private final UserRepository userRepository;
+    private final AuditLogRepository auditLogRepository;
 
     public DatasetService(DatasetRepository datasetRepository,
                           DatasetTableRepository datasetTableRepository,
-                          UserRepository userRepository) {
+                          UserRepository userRepository,
+                          AuditLogRepository auditLogRepository) {
         this.datasetRepository = datasetRepository;
         this.datasetTableRepository = datasetTableRepository;
         this.userRepository = userRepository;
+        this.auditLogRepository = auditLogRepository;
     }
 
     public List<Dataset> getPublicVerifiedDatasets() {
@@ -62,6 +69,18 @@ public class DatasetService {
                 normalizeFilter(category),
                 pageable
         ).getContent();
+    }
+
+    public Page<Dataset> getTrendingDatasetsForDashboardPage(Integer currentUserId,
+                                                             String search,
+                                                             String category,
+                                                             Pageable pageable) {
+        return datasetRepository.searchTrendingForDashboard(
+                currentUserId,
+                normalizeFilter(search),
+                normalizeFilter(category),
+                pageable
+        );
     }
 
     public Page<Dataset> searchAccessibleDatasets(Integer currentUserId,
@@ -193,8 +212,53 @@ public class DatasetService {
         return value.trim();
     }
 
+    public Map<Integer, DatasetStatsDTO> getDatasetStatsMap(List<Integer> datasetIds) {
+        Map<Integer, DatasetStatsDTO> statsMap = new HashMap<>();
+        if (datasetIds == null || datasetIds.isEmpty()) {
+            return statsMap;
+        }
+
+        for (Integer datasetId : datasetIds) {
+            statsMap.put(datasetId, new DatasetStatsDTO(datasetId, 0L, 0L, "N/A"));
+        }
+
+        List<String> trackedActions = List.of("DATASET_VIEWED", "DATASET_DOWNLOADED");
+        List<AuditLogRepository.DatasetActionCountProjection> aggregatedCounts =
+                auditLogRepository.countByDatasetIdsAndActions(datasetIds, trackedActions);
+
+        for (AuditLogRepository.DatasetActionCountProjection row : aggregatedCounts) {
+            DatasetStatsDTO current = statsMap.get(row.getDatasetId());
+            if (current == null) {
+                continue;
+            }
+            String action = row.getAction();
+            Long totalValue = row.getTotal();
+            long total = totalValue == null ? 0L : totalValue.longValue();
+            if ("DATASET_VIEWED".equals(action)) {
+                current.setViewCount(total);
+            } else if ("DATASET_DOWNLOADED".equals(action)) {
+                current.setDownloadCount(total);
+            }
+        }
+
+        List<DatasetTableRepository.DatasetFileTypeProjection> fileTypes =
+                datasetTableRepository.findFileTypesByDatasetIds(datasetIds);
+        for (DatasetTableRepository.DatasetFileTypeProjection row : fileTypes) {
+            DatasetStatsDTO current = statsMap.get(row.getDatasetId());
+            if (current == null || (current.getFileType() != null && !"N/A".equals(current.getFileType()))) {
+                continue;
+            }
+            if (row.getFileType() != null && !row.getFileType().isBlank()) {
+                current.setFileType(row.getFileType());
+            }
+        }
+
+        return statsMap;
+    }
+
     public record PermissionUpdateResult(Dataset dataset,
                                          List<String> addedEmails,
                                          List<String> invalidEmails) {
     }
 }
+

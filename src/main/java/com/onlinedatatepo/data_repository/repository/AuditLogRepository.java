@@ -19,6 +19,24 @@ import com.onlinedatatepo.data_repository.entity.AuditLog;
 @Repository
 public interface AuditLogRepository extends JpaRepository<AuditLog, Integer> {
 
+        interface DatasetActionCountProjection {
+                Integer getDatasetId();
+                String getAction();
+                Long getTotal();
+        }
+
+        interface DatasetLeaderboardProjection {
+                Integer getDatasetId();
+                String getDatasetName();
+                Long getTotal();
+        }
+
+        interface UserActivityProjection {
+                Integer getUserId();
+                String getDisplayName();
+                Long getTotal();
+        }
+
     /**
      * Find all audit logs for a user with pagination.
      */
@@ -77,4 +95,40 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Integer> {
                                             WHERE UPPER(CAST(a.action AS string)) = UPPER(CAST(:action AS string))
                                             """)
                                     long countByActionIgnoreCase(@Param("action") String action);
+
+    @Query("""
+            SELECT a.dataset.datasetId AS datasetId,
+                   UPPER(a.action) AS action,
+                   COUNT(a) AS total
+            FROM AuditLog a
+            WHERE a.dataset IS NOT NULL
+              AND a.dataset.datasetId IN :datasetIds
+              AND UPPER(a.action) IN :actions
+            GROUP BY a.dataset.datasetId, UPPER(a.action)
+            """)
+    List<DatasetActionCountProjection> countByDatasetIdsAndActions(@Param("datasetIds") List<Integer> datasetIds,
+                                                                    @Param("actions") List<String> actions);
+
+    @Query("""
+            SELECT a.dataset.datasetId AS datasetId,
+                   COALESCE(a.dataset.name, 'Unknown') AS datasetName,
+                   COUNT(a) AS total
+            FROM AuditLog a
+            WHERE a.dataset IS NOT NULL
+              AND UPPER(a.action) = UPPER(:action)
+            GROUP BY a.dataset.datasetId, a.dataset.name
+            ORDER BY COUNT(a) DESC
+            """)
+    Page<DatasetLeaderboardProjection> topDatasetsByAction(@Param("action") String action, Pageable pageable);
+
+    @Query("""
+            SELECT a.user.userId AS userId,
+                   COALESCE(a.user.fullName, a.user.username) AS displayName,
+                   COUNT(a) AS total
+            FROM AuditLog a
+            WHERE a.user IS NOT NULL
+            GROUP BY a.user.userId, a.user.fullName, a.user.username
+            ORDER BY COUNT(a) DESC
+            """)
+    Page<UserActivityProjection> topActiveUsers(Pageable pageable);
 }

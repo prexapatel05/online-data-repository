@@ -76,6 +76,14 @@
                         <textarea id="description" name="description" rows="4" class="fixed-description" placeholder="Briefly describe this dataset"></textarea>
                     </div>
 
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label for="tags">Tags</label>
+                        <select id="tags" name="tags" multiple style="min-height: 130px;">
+                            <option th:each="tag : ${availableTags}" th:value="${tag}" th:text="${tag}">Tag</option>
+                        </select>
+                        <span class="step-note">Select one or more tags. These are the same categories shown on dashboard.</span>
+                    </div>
+
                     <p class="step-note">Dataset title is auto-generated from the uploaded filename. You can rename it later from dataset details.</p>
 
                     <div class="upload-actions">

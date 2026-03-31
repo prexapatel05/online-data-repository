@@ -21,6 +21,11 @@ import com.onlinedatatepo.data_repository.entity.FileType;
 @Repository
 public interface DatasetRepository extends JpaRepository<Dataset, Integer> {
 
+  interface DatasetGrowthProjection {
+    String getDay();
+    Long getTotal();
+  }
+
     /**
      * Find all datasets by owner user ID with pagination.
      */
@@ -107,4 +112,13 @@ public interface DatasetRepository extends JpaRepository<Dataset, Integer> {
                                         @Param("search") String search,
                                         @Param("category") String category,
                                         Pageable pageable);
+
+      @Query(value = """
+          SELECT TO_CHAR(DATE(d.created_at), 'YYYY-MM-DD') AS day,
+               COUNT(*) AS total
+          FROM dataset d
+          GROUP BY DATE(d.created_at)
+          ORDER BY DATE(d.created_at) ASC
+          """, nativeQuery = true)
+      List<DatasetGrowthProjection> datasetGrowthTimeline();
 }

@@ -27,7 +27,9 @@
         <a th:href="@{/activity-log}" th:classappend="${activePage == 'activity-log'} ? 'active' : ''">
             <i data-lucide="history" class="nav-icon"></i> Activity Log
         </a>
-        <a href="#" th:classappend="${activePage == 'admin'} ? 'active' : ''">
+        <a th:if="${user != null and user.role != null and user.role.name() == 'ADMIN'}"
+           th:href="@{/admin}"
+           th:classappend="${activePage == 'admin'} ? 'active' : ''">
             <i data-lucide="shield" class="nav-icon"></i> Admin Panel
         </a>
         <a href="#" th:classappend="${activePage == 'settings'} ? 'active' : ''">
