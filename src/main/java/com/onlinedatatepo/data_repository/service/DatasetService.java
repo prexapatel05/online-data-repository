@@ -116,6 +116,19 @@ public class DatasetService {
         return datasetRepository.save(dataset);
     }
 
+    public Dataset updateDatasetDetails(Dataset dataset, String name, String description, String tag) {
+        if (dataset == null) {
+            throw new IllegalArgumentException("Dataset not found");
+        }
+
+        if (name != null && !name.isBlank()) {
+            dataset.setName(name.trim());
+        }
+        dataset.setDescription(description == null ? "" : description.trim());
+        dataset.setTag(tag == null ? "" : tag.trim());
+        return datasetRepository.save(dataset);
+    }
+
     public long countAllDatasets() {
         return datasetRepository.count();
     }

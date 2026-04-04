@@ -121,4 +121,22 @@ public interface DatasetRepository extends JpaRepository<Dataset, Integer> {
           ORDER BY DATE(d.created_at) ASC
           """, nativeQuery = true)
       List<DatasetGrowthProjection> datasetGrowthTimeline();
+
+        @Query(value = """
+          SELECT TO_CHAR(DATE_TRUNC('week', d.created_at), 'YYYY-MM-DD') AS day,
+             COUNT(*) AS total
+          FROM dataset d
+          GROUP BY DATE_TRUNC('week', d.created_at)
+          ORDER BY DATE_TRUNC('week', d.created_at) ASC
+          """, nativeQuery = true)
+        List<DatasetGrowthProjection> datasetGrowthTimelineWeekly();
+
+        @Query(value = """
+          SELECT TO_CHAR(DATE_TRUNC('month', d.created_at), 'YYYY-MM') AS day,
+             COUNT(*) AS total
+          FROM dataset d
+          GROUP BY DATE_TRUNC('month', d.created_at)
+          ORDER BY DATE_TRUNC('month', d.created_at) ASC
+          """, nativeQuery = true)
+        List<DatasetGrowthProjection> datasetGrowthTimelineMonthly();
 }

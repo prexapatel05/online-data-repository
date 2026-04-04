@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - DataHub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div class="app-layout">
+    <div th:replace="~{fragments/sidebar :: sidebar('settings')}"></div>
+
+    <div class="main-content">
+        <div th:replace="~{fragments/header :: header}"></div>
+
+        <div class="page-content">
+            <div class="breadcrumb">
+                <a th:href="@{/dashboard}">Home</a>
+                <i data-lucide="chevron-right" class="breadcrumb-sep"></i>
+                <span>Settings</span>
+            </div>
+
+            <h1 class="page-title">User Settings</h1>
+            <p class="page-subtitle">Update your profile details and manage account lifecycle.</p>
+
+            <div th:if="${success}" class="alert alert-success"><span th:text="${success}"></span></div>
+            <div th:if="${error}" class="alert alert-error"><span th:text="${error}"></span></div>
+
+            <div class="upload-card" style="margin-top:16px;">
+                <h3>Profile</h3>
+                <form th:action="@{/settings/profile}" method="post" th:object="${profileRequest}">
+                    <div class="form-group">
+                        <label for="fullName">Full Name</label>
+                        <input id="fullName" type="text" th:field="*{fullName}" required>
+                        <p class="field-error" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}"></p>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 12px;">
+                        <label for="email">Email</label>
+                        <input id="email" type="email" th:field="*{email}" required>
+                        <p class="field-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></p>
+                    </div>
+
+                    <div class="upload-actions" style="margin-top:16px;">
+                        <button type="submit" class="btn-next">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="upload-card" style="margin-top:16px; border-color:#ef4444;">
+                <h3 style="color:#b91c1c;">Delete Account</h3>
+                <p class="step-note">This is permanent. All your owned datasets and related data will be removed.</p>
+                <p class="field-error" th:if="${deleteError}" th:text="${deleteError}"></p>
+
+                <form th:action="@{/settings/delete-account}" method="post" th:object="${deleteRequest}">
+                    <div class="form-group">
+                        <label for="password">Current Password</label>
+                        <input id="password" type="password" th:field="*{password}" required>
+                        <p class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></p>
+                    </div>
+
+                    <label style="display:flex; align-items:center; gap:8px; margin-top:12px;">
+                        <input type="checkbox" th:field="*{confirmDelete}">
+                        <span>I understand this action cannot be undone.</span>
+                    </label>
+
+                    <div class="upload-actions" style="margin-top:16px; justify-content:flex-start;">
+                        <button type="submit" class="btn btn-danger btn-inline" onclick="return confirm('Delete account permanently?');">
+                            <i data-lucide="trash-2"></i>
+                            Delete My Account
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/main.js}"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

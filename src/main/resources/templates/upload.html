@@ -21,8 +21,11 @@
                 <span>Upload Dataset</span>
             </div>
 
-            <h1 class="page-title">Upload Dataset</h1>
-            <p class="page-subtitle">Upload and configure your research dataset in a few simple steps</p>
+            <h1 class="page-title">
+                <span th:text="${editingMode} ? 'Edit Dataset' : 'Upload Dataset'">Upload Dataset</span>
+                <span th:if="${editingMode}" class="status-pill status-pending" style="margin-left: 10px; vertical-align: middle;">Edit Flow</span>
+            </h1>
+            <p class="page-subtitle" th:text="${editingMode} ? 'Update your dataset through the same 4-step wizard flow.' : 'Upload and configure your research dataset in a few simple steps'">Upload and configure your research dataset in a few simple steps</p>
 
             <div th:if="${success}" class="alert alert-success">
                 <span th:text="${success}"></span>
@@ -60,43 +63,82 @@
             </div>
 
             <div class="upload-card" th:if="${currentStep == 1}">
-                <h3>Step 1: Upload Your Dataset File</h3>
-                <form id="uploadForm" th:action="@{/upload/start}" method="post" enctype="multipart/form-data">
+                <h3 th:text="${editingMode} ? 'Edit Dataset' : 'Step 1: Upload Your Dataset File'">Step 1: Upload Your Dataset File</h3>
+                <p class="step-note" th:if="${editingMode}">Update the dataset details here. Upload a new file only if you want to replace the current one.</p>
+                <form id="uploadForm" th:attr="data-edit-mode=${editingMode != null and editingMode}" th:action="${editingMode} ? @{'/upload/' + ${dataset.datasetId} + '/edit'} : @{/upload/start}" method="post" enctype="multipart/form-data">
                     <div class="drop-zone" id="dropZone">
                         <div class="upload-icon"><i data-lucide="upload"></i></div>
-                        <p>Drop your dataset file here or click to browse</p>
+                        <p th:text="${editingMode} ? 'Drop a replacement dataset file here or click to browse' : 'Drop one or more dataset files here or click to browse'">Drop one or more dataset files here or click to browse</p>
                         <span class="supported-formats">Supported formats: CSV, TSV, Excel</span>
                         <div class="file-selected" id="fileSelected" style="display:none;"></div>
                     </div>
 
-                    <input type="file" id="fileInput" name="file" accept=".csv,.tsv,.xlsx,.xls" style="display:none;" required>
+                    <input type="file" th:if="${editingMode}" id="fileInput" name="file" accept=".csv,.tsv,.xlsx,.xls" style="display:none;">
+                    <input type="file" th:unless="${editingMode}" id="fileInput" name="files" accept=".csv,.tsv,.xlsx,.xls" style="display:none;" multiple required>
+
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label for="datasetName">Dataset Name</label>
+                        <input id="datasetName" name="datasetName" type="text" th:value="${datasetNameValue != null ? datasetNameValue : 'Untitled Dataset'}" placeholder="Dataset name">
+                    </div>
 
                     <div class="form-group" style="margin-bottom: 14px;">
                         <label for="description">Description</label>
-                        <textarea id="description" name="description" rows="4" class="fixed-description" placeholder="Briefly describe this dataset"></textarea>
+                        <textarea id="description" name="description" rows="4" class="fixed-description" placeholder="Briefly describe this dataset" th:text="${datasetDescriptionValue != null ? datasetDescriptionValue : ''}"></textarea>
                     </div>
 
                     <div class="form-group" style="margin-bottom: 14px;">
                         <label for="tags">Tags</label>
                         <select id="tags" name="tags" multiple style="min-height: 130px;">
-                            <option th:each="tag : ${availableTags}" th:value="${tag}" th:text="${tag}">Tag</option>
+                            <option th:each="tag : ${availableTags}" th:value="${tag}" th:text="${tag}" th:selected="${selectedTags != null and #lists.contains(selectedTags, tag)}">Tag</option>
                         </select>
                         <span class="step-note">Select one or more tags. These are the same categories shown on dashboard.</span>
                     </div>
 
-                    <p class="step-note">Dataset title is auto-generated from the uploaded filename. You can rename it later from dataset details.</p>
+                    <div class="form-group" style="margin-bottom: 14px;" th:if="${editingMode}">
+                        <label for="changeSummary">Change Summary (Optional)</label>
+                        <textarea id="changeSummary" name="changeSummary" rows="3" placeholder="Describe what changed in this edit version"></textarea>
+                    </div>
+
+                    <p class="step-note" th:if="${!editingMode}">Dataset title is auto-generated from the first selected file. You can rename it later from dataset details.</p>
+                    <p class="step-note" th:if="${editingMode}">If you skip the file input, the current dataset file stays in place and metadata is re-extracted.</p>
 
                     <div class="upload-actions">
-                        <button type="submit" class="btn-next" id="nextBtn" disabled>Next: Additional Documents</button>
+                        <button type="submit" class="btn-next" id="nextBtn" th:text="${editingMode} ? 'Save Changes' : 'Next: Additional Documents'" disabled>Next: Additional Documents</button>
                     </div>
                 </form>
+            </div>
+
+            <div class="upload-card" th:if="${editingMode}" style="margin-top: 16px;">
+                <h3>Version History</h3>
+                <p class="step-note">Each edit creates a new dataset version after metadata re-extraction.</p>
+                <div class="metadata-table-wrapper" th:if="${!#lists.isEmpty(versions)}">
+                    <table class="simple-table">
+                        <thead>
+                        <tr>
+                            <th>Version</th>
+                            <th>Changed At</th>
+                            <th>Summary</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="version : ${versions}">
+                            <td th:text="${version.versionNumber}">1</td>
+                            <td th:text="${version.changedAt != null ? #temporals.format(version.changedAt, 'yyyy-MM-dd HH:mm') : 'N/A'}">N/A</td>
+                            <td th:text="${version.changeSummary != null and !version.changeSummary.isBlank() ? version.changeSummary : 'No summary'}">No summary</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="placeholder-box" th:if="${#lists.isEmpty(versions)}">
+                    <p>No versions created yet.</p>
+                </div>
             </div>
 
             <div class="upload-card" th:if="${currentStep == 2}">
                 <h3>Step 2: Attach Additional Documents</h3>
                 <p class="step-note">Add supporting files such as license documents, README files, or usage notes.</p>
 
-                <form th:action="@{'/upload/' + ${dataset.datasetId} + '/documents'}" method="post" enctype="multipart/form-data">
+                <form th:action="${editingMode} ? @{'/upload/' + ${dataset.datasetId} + '/documents'(editFlow=true)} : @{'/upload/' + ${dataset.datasetId} + '/documents'}" method="post" enctype="multipart/form-data">
                     <div class="drop-zone" id="docDropZone">
                         <div class="upload-icon"><i data-lucide="paperclip"></i></div>
                         <p>Drop additional files here or click to browse</p>
@@ -118,7 +160,7 @@
 
                     <div class="upload-actions">
                         <button type="submit" class="btn-next" id="docUploadBtn" disabled>Upload Documents</button>
-                        <a class="btn-next btn-light" th:href="@{'/upload/' + ${dataset.datasetId} + '/metadata'}">Next: Metadata Extractor</a>
+                        <a class="btn-next btn-light" th:href="${editingMode} ? @{'/upload/' + ${dataset.datasetId} + '/metadata'(editFlow=true)} : @{'/upload/' + ${dataset.datasetId} + '/metadata'}">Next: Metadata Extractor</a>
                     </div>
                 </form>
 
@@ -129,7 +171,13 @@
                             <strong th:text="${doc.fileName}">file.pdf</strong>
                             <span class="document-type" th:text="${doc.fileCategory}">LICENSE</span>
                         </div>
-                        <span class="document-meta" th:text="${#temporals.format(doc.uploadedAt, 'MMM dd, HH:mm')}">Mar 24, 10:00</span>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span class="document-meta" th:text="${#temporals.format(doc.uploadedAt, 'MMM dd, HH:mm')}">Mar 24, 10:00</span>
+                            <form th:if="${editingMode}" th:action="@{'/upload/' + ${dataset.datasetId} + '/documents/' + ${doc.fileId} + '/delete'(editFlow=true)}" method="post" class="inline-form" onsubmit="return confirm('Remove this document?');">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button type="submit" class="btn btn-outline btn-inline" style="padding: 4px 8px;">Remove</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -157,7 +205,7 @@
                         <tbody>
                             <tr th:each="table, stat : ${datasetTables}"
                                 class="metadata-row js-metadata-row"
-                                th:attr="data-table-id=${table.tableId},data-table-name=${table.tableName},data-json=${table.metadata}"
+                                th:attr="data-table-id=${table.tableId},data-table-name=${table.tableName},data-json=${table.metadata},data-status=${table.metadataExtractionStatus != null ? table.metadataExtractionStatus.name() : 'PENDING'},data-extracted-at=${table.metadataExtractedAt != null ? #temporals.format(table.metadataExtractedAt, 'yyyy-MM-dd HH:mm') : 'N/A'}"
                                 th:classappend="${stat.index == 0 ? ' selected' : ''}">
                                 <td th:text="${table.tableName}">movies.csv</td>
                                 <td class="table-description js-table-description">-</td>
@@ -165,13 +213,18 @@
                                     <span class="status-pill"
                                           th:classappend="${table.metadataExtractionStatus != null and table.metadataExtractionStatus.name() == 'COMPLETED' ? ' status-success' : (table.metadataExtractionStatus != null and table.metadataExtractionStatus.name() == 'FAILED' ? ' status-failed' : ' status-pending')}"
                                           th:text="${table.metadataExtractionStatus != null ? table.metadataExtractionStatus : 'PENDING'}">PENDING</span>
+                                    <div th:if="${table.metadataExtractionStatus != null and table.metadataExtractionStatus.name() == 'FAILED' and table.metadataExtractionError != null and !table.metadataExtractionError.isBlank()}"
+                                         style="margin-top: 6px; color: #b42318; font-size: 12px; line-height: 1.35; max-width: 380px;"
+                                         th:text="${table.metadataExtractionError}">
+                                        Metadata extraction error
+                                    </div>
                                 </td>
                                 <td th:text="${table.metadataExtractedAt != null ? #temporals.format(table.metadataExtractedAt, 'yyyy-MM-dd HH:mm') : 'N/A'}">N/A</td>
                             </tr>
                         </tbody>
                     </table>
                     <div class="hint">
-                        Select a table row to inspect parsed metadata fields and column-level statistics.
+                        Each table is rendered below with its own extracted metadata summary.
                     </div>
                 </div>
 
@@ -210,9 +263,17 @@
                     </details>
                 </div>
 
+                <div class="metadata-cards-grid" id="metadataCards" th:if="${!#lists.isEmpty(datasetTables)}"></div>
+
                 <div class="upload-actions">
-                    <a class="btn-next btn-light" th:href="@{'/upload/' + ${dataset.datasetId} + '/documents'}">Back</a>
-                    <a class="btn-next" th:href="@{'/upload/' + ${dataset.datasetId} + '/permissions'}">Next: Set Permissions</a>
+                    <a class="btn-next btn-light" th:href="${editingMode} ? @{'/upload/' + ${dataset.datasetId} + '/documents'(editFlow=true)} : @{'/upload/' + ${dataset.datasetId} + '/documents'}">Back</a>
+                    <form th:if="${editingMode}" th:action="@{'/upload/' + ${dataset.datasetId} + '/metadata/reextract'(editFlow=true)}" method="post" class="inline-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button type="submit" class="btn-next">Re-extract Metadata</button>
+                    </form>
+                    <a th:if="${editingMode and !hasPendingExtraction}" class="btn-next" th:href="@{'/upload/' + ${dataset.datasetId} + '/permissions'(editFlow=true)}">Continue to Permissions</a>
+                    <span th:if="${editingMode and hasPendingExtraction}" class="step-note">Metadata extraction is running. This page auto-refreshes every few seconds.</span>
+                    <a th:unless="${editingMode}" class="btn-next" th:href="@{'/upload/' + ${dataset.datasetId} + '/permissions'}">Next: Set Permissions</a>
                 </div>
             </div>
 
@@ -224,6 +285,7 @@
                     }
 
                     const rows = Array.from(statusTable.querySelectorAll('.js-metadata-row'));
+                    const cardsContainer = document.getElementById('metadataCards');
                     const detailsTitle = document.getElementById('metadataDetailsTitle');
                     const generalGroups = document.getElementById('metadataGeneralGroups');
                     const columnsBody = document.getElementById('metadataColumnsBody');
@@ -249,10 +311,90 @@
                         renderMetadata(first, parseMetadata(first.getAttribute('data-json')));
                     }
 
+                    renderAllMetadataCards(rows);
+
+                    function renderAllMetadataCards(rowList) {
+                        if (!cardsContainer) {
+                            return;
+                        }
+
+                        if (!rowList || rowList.length === 0) {
+                            cardsContainer.innerHTML = '';
+                            return;
+                        }
+
+                        cardsContainer.innerHTML = rowList.map(function (row) {
+                            const metadata = parseMetadata(row.getAttribute('data-json'));
+                            const tableName = row.getAttribute('data-table-name') || 'Selected Table';
+                            const tableStatus = (row.getAttribute('data-status') || 'PENDING').toUpperCase();
+                            const extractedAt = row.getAttribute('data-extracted-at') || 'N/A';
+                            const description = pickDescription(metadata);
+                            const generalEntries = buildGeneralEntries(metadata).slice(0, 6);
+                            const columnEntries = buildColumnEntries(metadata);
+                            const statusClass = tableStatus === 'COMPLETED'
+                                ? 'status-success'
+                                : (tableStatus === 'FAILED' ? 'status-failed' : 'status-pending');
+
+                            const generalRows = generalEntries.length === 0
+                                ? '<tr><td colspan="2" class="metadata-empty">No metadata fields found.</td></tr>'
+                                : generalEntries.map(function (entry) {
+                                    return '<tr><td>' + escapeHtml(formatGeneralFieldLabel(entry.key)) + '</td><td>' + escapeHtml(formatGeneralFieldValue(entry.key, entry.value)) + '</td></tr>';
+                                }).join('');
+
+                            const columnRows = columnEntries.length === 0
+                                ? '<tr><td colspan="4" class="metadata-empty">No column metadata found.</td></tr>'
+                                : columnEntries.map(function (column) {
+                                    return '<tr><td>' + escapeHtml(column.name) + '</td><td>' + escapeHtml(column.type) + '</td><td>' + escapeHtml(column.cardinality) + '</td><td>' + escapeHtml(column.missing) + '</td></tr>';
+                                }).join('');
+
+                            return ''
+                                + '<article class="metadata-table-card">'
+                                +   '<div class="metadata-card-header">'
+                                +     '<div>'
+                                +       '<h4>' + escapeHtml(tableName) + '</h4>'
+                                +       '<p class="step-note">' + escapeHtml(description) + '</p>'
+                                +     '</div>'
+                                +     '<div class="metadata-card-badges">'
+                                +       '<span class="status-pill ' + statusClass + '">' + escapeHtml(tableStatus) + '</span>'
+                                +       '<span class="document-type">' + escapeHtml(extractedAt) + '</span>'
+                                +     '</div>'
+                                +   '</div>'
+                                +   '<div class="metadata-detail-section">'
+                                +     '<h5>Key Metadata</h5>'
+                                +     '<table class="metadata-details-table">'
+                                +       '<thead><tr><th>Field</th><th>Value</th></tr></thead>'
+                                +       '<tbody>' + generalRows + '</tbody>'
+                                +     '</table>'
+                                +   '</div>'
+                                +   '<div class="metadata-detail-section">'
+                                +     '<h5>Columns</h5>'
+                                +     '<table class="metadata-details-table">'
+                                +       '<thead><tr><th>Column</th><th>Type</th><th>Cardinality</th><th>Missing %</th></tr></thead>'
+                                +       '<tbody>' + columnRows + '</tbody>'
+                                +     '</table>'
+                                +   '</div>'
+                                + '</article>';
+                        }).join('');
+                    }
+
                     function renderMetadata(row, metadata) {
                         const tableName = row.getAttribute('data-table-name') || 'Selected Table';
+                        const tableStatus = (row.getAttribute('data-status') || 'PENDING').toUpperCase();
                         if (detailsTitle) {
                             detailsTitle.textContent = 'Metadata Details: ' + tableName;
+                        }
+
+                        if (tableStatus === 'PENDING') {
+                            if (generalGroups) {
+                                generalGroups.innerHTML = '<p class="metadata-empty">Metadata extraction is in progress for this table. Latest extracted metadata will appear automatically.</p>';
+                            }
+                            if (columnsBody) {
+                                columnsBody.innerHTML = '<tr><td colspan="4" class="metadata-empty">Extraction in progress.</td></tr>';
+                            }
+                            if (rawJsonBox) {
+                                rawJsonBox.textContent = '{}';
+                            }
+                            return;
                         }
 
                         const generalEntries = buildGeneralEntries(metadata);
@@ -677,7 +819,7 @@
                 <h3>Step 4: Set Permissions</h3>
                 <p class="step-note">Choose who can view this dataset after publishing.</p>
 
-                <form th:action="@{'/upload/' + ${dataset.datasetId} + '/permissions'}" method="post">
+                <form th:action="${editingMode} ? @{'/upload/' + ${dataset.datasetId} + '/permissions'(editFlow=true)} : @{'/upload/' + ${dataset.datasetId} + '/permissions'}" method="post">
                     <div class="permission-options permission-options-polished">
                         <label class="permission-option permission-card" th:each="level : ${accessLevels}">
                             <input type="radio"
@@ -711,7 +853,7 @@
                     </div>
 
                     <div class="upload-actions">
-                        <a class="btn-next btn-light" th:href="@{'/upload/' + ${dataset.datasetId} + '/metadata'}">Back</a>
+                        <a class="btn-next btn-light" th:href="${editingMode} ? @{'/upload/' + ${dataset.datasetId} + '/metadata'(editFlow=true)} : @{'/upload/' + ${dataset.datasetId} + '/metadata'}">Back</a>
                         <button type="submit" class="btn-next">Finish Upload</button>
                     </div>
                 </form>

@@ -17,17 +17,20 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.onlinedatatepo.data_repository.entity.DatasetColumn;
 import com.onlinedatatepo.data_repository.entity.DatasetFile;
 import com.onlinedatatepo.data_repository.entity.DatasetTable;
 import com.onlinedatatepo.data_repository.entity.FileType;
 import com.onlinedatatepo.data_repository.entity.MetadataExtractionStatus;
 import com.onlinedatatepo.data_repository.entity.User;
+import com.onlinedatatepo.data_repository.repository.DatasetColumnRepository;
 import com.onlinedatatepo.data_repository.repository.DatasetTableRepository;
 
 @Service
 public class MetadataExtractionService {
 
     private final DatasetTableRepository datasetTableRepository;
+    private final DatasetColumnRepository datasetColumnRepository;
     private final HttpClient httpClient;
 
     @Autowired
@@ -36,8 +39,10 @@ public class MetadataExtractionService {
     @Value("${python-service.url:http://localhost:8000}")
     private String pythonServiceUrl;
 
-    public MetadataExtractionService(DatasetTableRepository datasetTableRepository) {
+    public MetadataExtractionService(DatasetTableRepository datasetTableRepository,
+                                     DatasetColumnRepository datasetColumnRepository) {
         this.datasetTableRepository = datasetTableRepository;
+        this.datasetColumnRepository = datasetColumnRepository;
         this.httpClient = HttpClient.newHttpClient();
     }
 
@@ -133,12 +138,42 @@ public class MetadataExtractionService {
             table.setMetadataExtractionStatus(MetadataExtractionStatus.EXTRACTED);
             table.setMetadataExtractionError(null);
             datasetTableRepository.save(table);
+            syncDatasetColumns(table, metadataNode);
 
-        } catch (IOException | InterruptedException e) {
+        } catch (InterruptedException e) {
             persistFailure(table, "Metadata extraction failure: " + e.getMessage());
             Thread.currentThread().interrupt();
+        } catch (IOException e) {
+            persistFailure(table, "Metadata extraction failure: " + e.getMessage());
         } catch (Exception e) {
             persistFailure(table, "Metadata extraction failure: " + e.getMessage());
+        }
+    }
+
+    private void syncDatasetColumns(DatasetTable table, JsonNode metadataNode) {
+        JsonNode columnsNode = metadataNode.path("columns");
+        datasetColumnRepository.deleteByTable_TableId(table.getTableId());
+
+        if (!columnsNode.isArray()) {
+            return;
+        }
+
+        for (JsonNode columnNode : columnsNode) {
+            String columnName = columnNode.path("name").asText("").trim();
+            if (columnName.isBlank()) {
+                continue;
+            }
+
+            String columnType = columnNode.path("type").asText("STRING").trim();
+            if (columnType.isBlank()) {
+                columnType = "STRING";
+            }
+
+            DatasetColumn datasetColumn = new DatasetColumn();
+            datasetColumn.setTable(table);
+            datasetColumn.setColumnName(columnName);
+            datasetColumn.setColumnType(columnType.toUpperCase());
+            datasetColumnRepository.save(datasetColumn);
         }
     }
 

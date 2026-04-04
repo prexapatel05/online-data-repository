@@ -172,6 +172,8 @@ public class DataExplorerController {
             }
         }
 
+        List<Map<String, Object>> tablePreviews = buildTablePreviews(tables);
+
         long totalRows = 0;
         if (primaryTable != null) {
             try {
@@ -196,9 +198,6 @@ public class DataExplorerController {
                 PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "timestamp"))
         ).getContent();
 
-        Map<String, Object> statistics = buildDatasetStatistics(columns, previewRows, totalRows);
-        statistics.put("viewCount", auditLogRepository.countByDataset_DatasetIdAndActionIgnoreCase(datasetId, "DATASET_VIEWED"));
-        statistics.put("downloadCount", auditLogRepository.countByDataset_DatasetIdAndActionIgnoreCase(datasetId, "DATASET_DOWNLOADED"));
         Map<String, Object> parsedMetadata = parseTableMetadata(primaryTable);
         List<Map<String, Object>> metadataColumns = extractMetadataColumns(parsedMetadata);
         Map<String, Object> dimensions = asObjectMap(parsedMetadata.get("dimensions"));
@@ -209,20 +208,19 @@ public class DataExplorerController {
         long metadataColumnCount = toLong(dimensions.get("column_count"), columns.size());
         String metadataCompleteness = formatPercent(qualityMetrics.get("completeness"));
 
-        List<String> metadataKeywords = splitTags(dataset.getTag());
-        if (metadataKeywords.isEmpty()) {
-            metadataKeywords = metadataColumns.stream()
-                .map(column -> String.valueOf(column.getOrDefault("name", "")))
-                .filter(value -> value != null && !value.isBlank())
-                .limit(4)
-                .toList();
-        }
-        String metadataCategory = metadataKeywords.isEmpty() ? "General" : metadataKeywords.get(0);
-        if (metadataCategory.equals("General") && fileInfo.get("file_type") != null) {
-            metadataCategory = String.valueOf(fileInfo.get("file_type")).toUpperCase();
+        Map<String, Object> statistics = buildDatasetStatistics(columns, previewRows, totalRows, metadataColumnCount);
+        statistics.put("viewCount", auditLogRepository.countByDataset_DatasetIdAndActionIgnoreCase(datasetId, "DATASET_VIEWED"));
+        statistics.put("downloadCount", auditLogRepository.countByDataset_DatasetIdAndActionIgnoreCase(datasetId, "DATASET_DOWNLOADED"));
+
+        String metadataTag = (dataset.getTag() == null || dataset.getTag().isBlank())
+                ? "General"
+                : dataset.getTag();
+        if ("General".equals(metadataTag) && fileInfo.get("file_type") != null) {
+            metadataTag = String.valueOf(fileInfo.get("file_type")).toUpperCase();
         }
 
         List<Map<String, String>> metadataGeneralEntries = buildGeneralMetadataEntries(parsedMetadata);
+        List<Map<String, Object>> tableDetails = buildTableDetails(tables);
 
         String ownerDisplayName = defaultUserDisplayName(dataset.getUser());
         String datasetFormat = primaryTable != null && primaryTable.getFileType() != null
@@ -235,6 +233,7 @@ public class DataExplorerController {
         model.addAttribute("tables", tables);
         model.addAttribute("columns", columns);
         model.addAttribute("previewRows", previewRows);
+        model.addAttribute("tablePreviews", tablePreviews);
         model.addAttribute("datasetActivity", datasetActivity);
         model.addAttribute("statistics", statistics);
         model.addAttribute("authorizedUsers", dataset.getAuthorizedUsers() == null ? Collections.emptyList() : dataset.getAuthorizedUsers());
@@ -243,15 +242,17 @@ public class DataExplorerController {
         model.addAttribute("datasetSize", datasetSize);
         model.addAttribute("isOwner", dataset.getUser().getUserId().equals(currentUser.getUserId()));
         model.addAttribute("metadataColumns", metadataColumns);
-        model.addAttribute("metadataCategory", metadataCategory);
-        model.addAttribute("metadataKeywords", metadataKeywords);
+        model.addAttribute("metadataTag", metadataTag);
         model.addAttribute("metadataRowCount", metadataRowCount);
         model.addAttribute("metadataColumnCount", metadataColumnCount);
         model.addAttribute("metadataCompleteness", metadataCompleteness);
         model.addAttribute("metadataGeneralEntries", metadataGeneralEntries);
+        model.addAttribute("tableDetails", tableDetails);
         model.addAttribute("hasMetadata", !metadataColumns.isEmpty());
 
-        createAuditLog(currentUser, dataset, "DATASET_VIEWED", "Viewed dataset details (tab: " + normalizeTab(tab) + ").");
+        if ("overview".equals(normalizeTab(tab))) {
+            createAuditLog(currentUser, dataset, "DATASET_VIEWED", "Viewed dataset details (tab: overview).");
+        }
 
         return "dataset-detail";
     }
@@ -601,9 +602,10 @@ public class DataExplorerController {
 
     private Map<String, Object> buildDatasetStatistics(List<DatasetColumn> columns,
                                                        List<Map<String, String>> previewRows,
-                                                       long totalRows) {
+                                                       long totalRows,
+                                                       long metadataColumnCount) {
         Map<String, Object> stats = new LinkedHashMap<>();
-        stats.put("totalColumns", columns.size());
+        stats.put("totalColumns", metadataColumnCount > 0 ? metadataColumnCount : columns.size());
         stats.put("previewRows", previewRows.size());
         stats.put("totalRows", totalRows);
 
@@ -772,6 +774,61 @@ public class DataExplorerController {
         }
 
         return entries;
+    }
+
+    private List<Map<String, Object>> buildTableDetails(List<DatasetTable> tables) {
+        if (tables == null || tables.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Map<String, Object>> details = new ArrayList<>();
+        for (DatasetTable table : tables) {
+            Map<String, Object> parsedMetadata = parseTableMetadata(table);
+            List<Map<String, Object>> metadataColumns = extractMetadataColumns(parsedMetadata);
+            Map<String, Object> dimensions = asObjectMap(parsedMetadata.get("dimensions"));
+            Map<String, Object> qualityMetrics = asObjectMap(parsedMetadata.get("quality_metrics"));
+
+            Map<String, Object> detail = new LinkedHashMap<>();
+            detail.put("tableId", table.getTableId());
+            detail.put("tableName", table.getTableName());
+            detail.put("fileType", table.getFileType() != null ? table.getFileType().name() : "N/A");
+            detail.put("status", table.getMetadataExtractionStatus() != null ? table.getMetadataExtractionStatus().name() : "PENDING");
+            detail.put("extractedAt", table.getMetadataExtractedAt());
+            detail.put("rowCount", toLong(dimensions.get("row_count"), 0L));
+            detail.put("columnCount", toLong(dimensions.get("column_count"), metadataColumns.size()));
+            detail.put("completeness", formatPercent(qualityMetrics.get("completeness")));
+            detail.put("metadataColumns", metadataColumns);
+            details.add(detail);
+        }
+
+        return details;
+    }
+
+    private List<Map<String, Object>> buildTablePreviews(List<DatasetTable> tables) {
+        if (tables == null || tables.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Map<String, Object>> previews = new ArrayList<>();
+        for (DatasetTable table : tables) {
+            Map<String, Object> preview = new LinkedHashMap<>();
+            preview.put("tableId", table.getTableId());
+            preview.put("tableName", table.getTableName());
+            preview.put("fileType", table.getFileType() != null ? table.getFileType().name() : "N/A");
+            preview.put("status", table.getMetadataExtractionStatus() != null ? table.getMetadataExtractionStatus().name() : "PENDING");
+
+            List<Map<String, String>> rows = Collections.emptyList();
+            try {
+                rows = queryExecutionService.previewRows(table, 10);
+            } catch (Exception ignored) {
+                rows = Collections.emptyList();
+            }
+
+            preview.put("rows", rows);
+            previews.add(preview);
+        }
+
+        return previews;
     }
 
     private void addMetadataEntry(List<Map<String, String>> entries, String key, Object value) {

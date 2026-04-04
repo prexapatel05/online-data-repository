@@ -22,8 +22,17 @@ logging.level.org.hibernate.SQL=DEBUG
 logging.level.org.hibernate.type.descriptor.sql.BasicBinder=TRACE
 
 # File Upload Configuration
-spring.servlet.multipart.max-file-size=100MB
-spring.servlet.multipart.max-request-size=100MB
+spring.servlet.multipart.max-file-size=300MB
+spring.servlet.multipart.max-request-size=300MB
+spring.servlet.multipart.file-size-threshold=2MB
+spring.servlet.multipart.resolve-lazily=true
+
+# Large upload / slow-client request handling
+server.tomcat.max-swallow-size=-1
+server.tomcat.max-http-form-post-size=300MB
+server.tomcat.max-parameter-count=50000
+server.connection-timeout=300s
+spring.mvc.async.request-timeout=300000
 app.upload.dir=uploads
 
 # Thymeleaf Configuration

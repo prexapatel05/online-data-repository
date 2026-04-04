@@ -33,4 +33,9 @@ public interface DatasetAccessRepository extends JpaRepository<DatasetAccess, Da
      * Count users authorized to access a dataset.
      */
     long countByDataset_DatasetId(Integer datasetId);
+
+    /**
+     * Delete all dataset access entries for a user.
+     */
+    void deleteByUser_UserId(Integer userId);
 }

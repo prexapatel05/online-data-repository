@@ -27,6 +27,11 @@ public interface DatasetTableRepository extends JpaRepository<DatasetTable, Inte
     List<DatasetTable> findByDataset_DatasetId(Integer datasetId);
 
     /**
+     * Find all tables in a dataset ordered by table id.
+     */
+    List<DatasetTable> findByDataset_DatasetIdOrderByTableIdAsc(Integer datasetId);
+
+    /**
      * Find a table by name within a dataset.
      */
     DatasetTable findByTableNameAndDataset_DatasetId(String tableName, Integer datasetId);

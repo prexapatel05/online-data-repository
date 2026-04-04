@@ -43,7 +43,7 @@
                         Download
                     </a>
 
-                    <a class="btn btn-outline btn-inline" th:if="${isOwner}" th:href="@{'/upload/' + ${dataset.datasetId} + '/permissions'}">
+                    <a class="btn btn-outline btn-inline" th:if="${isOwner}" th:href="@{'/upload/' + ${dataset.datasetId} + '/edit'}">
                         <i data-lucide="pencil"></i>
                         Edit
                     </a>
@@ -75,8 +75,8 @@
                 <h3>Metadata</h3>
                 <div class="dataset-detail-metadata-grid">
                     <div class="meta-item">
-                        <span>Category</span>
-                        <strong th:text="${metadataCategory}">Uncategorized</strong>
+                        <span>Tag</span>
+                        <strong th:text="${metadataTag}">General</strong>
                     </div>
                     <div class="meta-item">
                         <span>Format</span>
@@ -97,17 +97,6 @@
                     <div class="meta-item">
                         <span>Missing Values (Preview)</span>
                         <strong th:text="${statistics.missingValues}">0</strong>
-                    </div>
-                    <div class="meta-item meta-item-wide">
-                        <span>Keywords</span>
-                        <div class="dataset-tags" style="margin-bottom:0;">
-                            <th:block th:if="${!#lists.isEmpty(metadataKeywords)}">
-                                <span class="tag" th:each="keyword : ${metadataKeywords}" th:text="${keyword}">keyword</span>
-                            </th:block>
-                            <th:block th:if="${#lists.isEmpty(metadataKeywords)}">
-                                <span>No keywords</span>
-                            </th:block>
-                        </div>
                     </div>
                 </div>
 
@@ -134,7 +123,7 @@
             </div>
 
             <div class="upload-card dataset-detail-card" th:if="${tab == 'overview'}" style="margin-top: 16px;">
-                <h3>Schema Information</h3>
+                <h3>Primary Table Schema Information</h3>
 
                 <div class="metadata-table-wrapper" style="margin-top:16px;" th:if="${hasMetadata}">
                     <table class="simple-table">
@@ -160,23 +149,111 @@
                 </div>
             </div>
 
+            <div class="upload-card dataset-detail-card" th:if="${tab == 'overview'}" style="margin-top: 16px;">
+                <h3>All Tables in Dataset</h3>
+                <p class="step-note">Each uploaded table is shown below with its own extracted metadata.</p>
+
+                <div class="table-detail-card-grid" th:if="${!#lists.isEmpty(tableDetails)}">
+                    <div class="dataset-table-card" th:each="table : ${tableDetails}">
+                        <div class="dataset-table-card-header">
+                            <div>
+                                <h4 th:text="${table.tableName}">table.csv</h4>
+                                <p class="step-note">Per-table metadata summary</p>
+                            </div>
+                            <span class="status-pill"
+                                  th:classappend="${table.status == 'EXTRACTED' ? ' status-success' : (table.status == 'FAILED' ? ' status-failed' : ' status-pending')}"
+                                  th:text="${table.status}">PENDING</span>
+                        </div>
+
+                        <div class="dataset-detail-metadata-grid" style="margin-top: 12px;">
+                            <div class="meta-item">
+                                <span>File Type</span>
+                                <strong th:text="${table.fileType}">CSV</strong>
+                            </div>
+                            <div class="meta-item">
+                                <span>Rows</span>
+                                <strong th:text="${table.rowCount}">0</strong>
+                            </div>
+                            <div class="meta-item">
+                                <span>Columns</span>
+                                <strong th:text="${table.columnCount}">0</strong>
+                            </div>
+                            <div class="meta-item">
+                                <span>Completeness</span>
+                                <strong th:text="${table.completeness}">N/A</strong>
+                            </div>
+                        </div>
+
+                        <div class="metadata-table-wrapper" style="margin-top: 12px;" th:if="${!#lists.isEmpty(table.metadataColumns)}">
+                            <table class="simple-table">
+                                <thead>
+                                <tr>
+                                    <th>Column</th>
+                                    <th>Type</th>
+                                    <th>Min</th>
+                                    <th>Max</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="column : ${table.metadataColumns}">
+                                    <td th:text="${column.name}">column_name</td>
+                                    <td><span class="badge badge-default" th:text="${column.type}">TYPE</span></td>
+                                    <td th:text="${column.minValue}">-</td>
+                                    <td th:text="${column.maxValue}">-</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="placeholder-box" style="margin-top: 12px;" th:if="${#lists.isEmpty(table.metadataColumns)}">
+                            <p>Metadata is not available yet for this table.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="placeholder-box" th:if="${#lists.isEmpty(tableDetails)}">
+                    <p>No uploaded tables found.</p>
+                </div>
+            </div>
+
             <div class="upload-card dataset-detail-card" th:if="${tab == 'preview'}" style="margin-top: 16px;">
-                <h3>Data Preview (First 25 rows)</h3>
-                <div class="metadata-table-wrapper" th:if="${!#lists.isEmpty(previewRows)}">
+                <h3>Data Preview</h3>
+                <p class="step-note">Each table in the dataset is shown below with its own preview rows.</p>
+
+                <div class="table-detail-card-grid" th:if="${!#lists.isEmpty(tablePreviews)}">
+                    <div class="dataset-table-card" th:each="table : ${tablePreviews}">
+                        <div class="dataset-table-card-header">
+                            <div>
+                                <h4 th:text="${table.tableName}">table.csv</h4>
+                                <p class="step-note">Preview rows</p>
+                            </div>
+                            <span class="status-pill"
+                                  th:classappend="${table.status == 'EXTRACTED' ? ' status-success' : (table.status == 'FAILED' ? ' status-failed' : ' status-pending')}"
+                                  th:text="${table.status}">PENDING</span>
+                        </div>
+
+                        <div class="metadata-table-wrapper" style="margin-top: 12px;" th:if="${!#lists.isEmpty(table.rows)}">
                     <table class="simple-table">
                         <thead>
                         <tr>
-                            <th th:each="entry : ${previewRows[0].entrySet()}" th:text="${entry.key}"></th>
+                            <th th:each="entry : ${table.rows[0].entrySet()}" th:text="${entry.key}"></th>
                         </tr>
                         </thead>
                         <tbody>
-                        <tr th:each="row : ${previewRows}">
+                        <tr th:each="row : ${table.rows}">
                             <td th:each="entry : ${row.entrySet()}" th:text="${entry.value}"></td>
                         </tr>
                         </tbody>
                     </table>
                 </div>
-                <div class="placeholder-box" th:if="${#lists.isEmpty(previewRows)}">
+
+                <div class="placeholder-box" style="margin-top: 12px;" th:if="${#lists.isEmpty(table.rows)}">
+                            <p>No preview rows available for this table yet.</p>
+                        </div>
+                    </div>
+                </div>
+
+            <div class="placeholder-box" th:if="${#lists.isEmpty(tablePreviews)}">
                     <p>No preview rows available yet.</p>
                 </div>
             </div>

@@ -38,18 +38,23 @@ public class AdminController {
 
     @GetMapping("/admin")
     public String adminDashboard(@RequestParam(value = "page", defaultValue = "0") int page,
+                                 @RequestParam(value = "period", defaultValue = "weekly") String period,
                                  org.springframework.security.core.Authentication authentication,
                                  Model model) {
         User user = authService.findByEmail(authentication.getName());
         model.addAttribute("user", user);
 
         model.addAttribute("totalUsers", userRepository.count());
-        model.addAttribute("totalDatasets", datasetRepository.count());
+        model.addAttribute("totalCreated", datasetRepository.count());
         model.addAttribute("totalViews", auditLogRepository.countByActionIgnoreCase("DATASET_VIEWED"));
         model.addAttribute("totalDownloads", auditLogRepository.countByActionIgnoreCase("DATASET_DOWNLOADED"));
 
-        List<DatasetRepository.DatasetGrowthProjection> growthTimeline = datasetRepository.datasetGrowthTimeline();
+        String selectedPeriod = "monthly".equalsIgnoreCase(period) ? "monthly" : "weekly";
+        List<DatasetRepository.DatasetGrowthProjection> growthTimeline = "monthly".equals(selectedPeriod)
+                ? datasetRepository.datasetGrowthTimelineMonthly()
+                : datasetRepository.datasetGrowthTimelineWeekly();
         model.addAttribute("growthTimeline", growthTimeline);
+        model.addAttribute("selectedPeriod", selectedPeriod);
 
         Page<AuditLogRepository.DatasetLeaderboardProjection> topViewed =
                 auditLogRepository.topDatasetsByAction("DATASET_VIEWED", PageRequest.of(0, 10));

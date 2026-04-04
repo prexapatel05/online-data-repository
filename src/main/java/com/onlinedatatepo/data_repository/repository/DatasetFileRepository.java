@@ -26,9 +26,21 @@ public interface DatasetFileRepository extends JpaRepository<DatasetFile, Intege
     List<DatasetFile> findByDataset_DatasetIdAndFileCategory(Integer datasetId, DatasetFileCategory fileCategory);
 
     /**
+     * Find files in a dataset by category ordered by upload time.
+     */
+    List<DatasetFile> findByDataset_DatasetIdAndFileCategoryOrderByUploadedAtAsc(Integer datasetId, DatasetFileCategory fileCategory);
+
+    /**
      * Find a file by file name in a dataset.
      */
     DatasetFile findByFileNameAndDataset_DatasetId(String fileName, Integer datasetId);
+
+    /**
+     * Find a file by name and category in a dataset.
+     */
+    DatasetFile findByDataset_DatasetIdAndFileCategoryAndFileName(Integer datasetId,
+                                                                   DatasetFileCategory fileCategory,
+                                                                   String fileName);
 
     /**
      * Count files in a dataset.

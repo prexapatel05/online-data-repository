@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const fileInput = document.getElementById('fileInput');
     const fileSelected = document.getElementById('fileSelected');
     const nextBtn = document.getElementById('nextBtn');
+    const uploadForm = document.getElementById('uploadForm');
+    const editMode = uploadForm && uploadForm.dataset.editMode === 'true';
 
     if (dropZone && fileInput) {
         dropZone.addEventListener('click', function () {
@@ -24,25 +26,34 @@ document.addEventListener('DOMContentLoaded', function () {
             dropZone.classList.remove('dragover');
             if (e.dataTransfer.files.length > 0) {
                 fileInput.files = e.dataTransfer.files;
-                showSelectedFile(e.dataTransfer.files[0]);
+                showSelectedFiles(e.dataTransfer.files);
             }
         });
 
         fileInput.addEventListener('change', function () {
             if (fileInput.files.length > 0) {
-                showSelectedFile(fileInput.files[0]);
+                showSelectedFiles(fileInput.files);
             }
         });
 
-        function showSelectedFile(file) {
+        if (editMode && nextBtn) {
+            nextBtn.disabled = false;
+        }
+
+        function showSelectedFiles(files) {
             if (fileSelected) {
-                fileSelected.textContent = 'Selected: ' + file.name + ' (' + formatSize(file.size) + ')';
+                if (files.length === 1) {
+                    const file = files[0];
+                    fileSelected.textContent = 'Selected: ' + file.name + ' (' + formatSize(file.size) + ')';
+                } else {
+                    fileSelected.textContent = 'Selected ' + files.length + ' files';
+                }
                 fileSelected.style.display = 'block';
             }
             // Auto-set dataset name from filename
             var nameInput = document.getElementById('datasetName');
-            if (nameInput && nameInput.value === 'Untitled Dataset') {
-                nameInput.value = file.name.replace(/\.[^/.]+$/, '');
+            if (nameInput && !editMode && nameInput.value === 'Untitled Dataset' && files.length > 0) {
+                nameInput.value = files[0].name.replace(/\.[^/.]+$/, '');
             }
             if (nextBtn) {
                 nextBtn.disabled = false;

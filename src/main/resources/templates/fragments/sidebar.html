@@ -32,7 +32,7 @@
            th:classappend="${activePage == 'admin'} ? 'active' : ''">
             <i data-lucide="shield" class="nav-icon"></i> Admin Panel
         </a>
-        <a href="#" th:classappend="${activePage == 'settings'} ? 'active' : ''">
+        <a th:href="@{/settings}" th:classappend="${activePage == 'settings'} ? 'active' : ''">
             <i data-lucide="settings" class="nav-icon"></i> Settings
         </a>
     </nav>

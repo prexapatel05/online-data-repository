@@ -30,8 +30,8 @@
                     <p th:text="${totalUsers}">0</p>
                 </div>
                 <div class="section-card dataset-stat-card">
-                    <h4>Total Datasets</h4>
-                    <p th:text="${totalDatasets}">0</p>
+                    <h4>Datasets Created</h4>
+                    <p th:text="${totalCreated}">0</p>
                 </div>
                 <div class="section-card dataset-stat-card">
                     <h4>Total Views</h4>
@@ -46,6 +46,14 @@
             <div class="bottom-sections" style="margin-top:16px; grid-template-columns: 2fr 1fr;">
                 <div class="section-card">
                     <h3>Dataset Growth Timeline</h3>
+                    <div class="upload-actions" style="margin: 8px 0 12px 0; justify-content: flex-start;">
+                        <a class="btn-next btn-light"
+                           th:classappend="${selectedPeriod == 'weekly'} ? ' active' : ''"
+                           th:href="@{/admin(period='weekly', page=${activityCurrentPage})}">Weekly</a>
+                        <a class="btn-next btn-light"
+                           th:classappend="${selectedPeriod == 'monthly'} ? ' active' : ''"
+                           th:href="@{/admin(period='monthly', page=${activityCurrentPage})}">Monthly</a>
+                    </div>
                     <div class="admin-growth-chart-wrap">
                         <canvas id="growthChart"></canvas>
                     </div>
@@ -145,9 +153,9 @@
                 </div>
 
                 <div class="upload-actions" style="margin-top: 12px;" th:if="${activityTotalPages > 1}">
-                    <a class="btn-next btn-light" th:if="${activityCurrentPage > 0}" th:href="@{/admin(page=${activityCurrentPage - 1})}">Previous</a>
+                    <a class="btn-next btn-light" th:if="${activityCurrentPage > 0}" th:href="@{/admin(page=${activityCurrentPage - 1}, period=${selectedPeriod})}">Previous</a>
                     <span class="step-note">Page <span th:text="${activityCurrentPage + 1}">1</span> of <span th:text="${activityTotalPages}">1</span></span>
-                    <a class="btn-next btn-light" th:if="${activityCurrentPage + 1 < activityTotalPages}" th:href="@{/admin(page=${activityCurrentPage + 1})}">Next</a>
+                    <a class="btn-next btn-light" th:if="${activityCurrentPage + 1 < activityTotalPages}" th:href="@{/admin(page=${activityCurrentPage + 1}, period=${selectedPeriod})}">Next</a>
                 </div>
             </div>
         </div>
@@ -156,6 +164,7 @@
 
 <script th:inline="javascript">
     const growthRows = /*[[${growthTimeline}]]*/ [];
+    const selectedPeriod = /*[[${selectedPeriod}]]*/ 'weekly';
     const labels = growthRows.map(row => row.day);
     const values = growthRows.map(row => row.total);
 
@@ -166,7 +175,7 @@
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Datasets Created',
+                    label: selectedPeriod === 'monthly' ? 'Datasets Created (Monthly)' : 'Datasets Created (Weekly)',
                     data: values,
                     borderColor: '#0d9488',
                     backgroundColor: 'rgba(13,148,136,0.12)',
