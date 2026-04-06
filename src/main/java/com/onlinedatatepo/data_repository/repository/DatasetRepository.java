@@ -36,6 +36,45 @@ public interface DatasetRepository extends JpaRepository<Dataset, Integer> {
      */
     Page<Dataset> findByAccessLevel(AccessLevel accessLevel, Pageable pageable);
 
+        @Query(value = """
+            SELECT d.*
+            FROM dataset d
+            WHERE d.user_id = :userId
+            AND (:search IS NULL
+              OR COALESCE(d.name, '') ILIKE CONCAT('%', :search, '%')
+              OR COALESCE(d.description, '') ILIKE CONCAT('%', :search, '%')
+              OR COALESCE(d.tag, '') ILIKE CONCAT('%', :search, '%'))
+            AND (:category IS NULL OR COALESCE(d.tag, '') ILIKE CONCAT('%', :category, '%'))
+            AND (:visibility IS NULL OR d.access_level = :visibility)
+            AND (:fileType IS NULL OR EXISTS (
+              SELECT 1 FROM dataset_tables t
+              WHERE t.dataset_id = d.dataset_id AND t.file_type = :fileType
+            ))
+            ORDER BY d.created_at DESC
+            """,
+            countQuery = """
+            SELECT COUNT(*)
+            FROM dataset d
+            WHERE d.user_id = :userId
+            AND (:search IS NULL
+              OR COALESCE(d.name, '') ILIKE CONCAT('%', :search, '%')
+              OR COALESCE(d.description, '') ILIKE CONCAT('%', :search, '%')
+              OR COALESCE(d.tag, '') ILIKE CONCAT('%', :search, '%'))
+            AND (:category IS NULL OR COALESCE(d.tag, '') ILIKE CONCAT('%', :category, '%'))
+            AND (:visibility IS NULL OR d.access_level = :visibility)
+            AND (:fileType IS NULL OR EXISTS (
+              SELECT 1 FROM dataset_tables t
+              WHERE t.dataset_id = d.dataset_id AND t.file_type = :fileType
+            ))
+            """,
+            nativeQuery = true)
+        Page<Dataset> searchOwnedDatasets(@Param("userId") Integer userId,
+                                       @Param("search") String search,
+                                       @Param("category") String category,
+                                       @Param("visibility") String visibility,
+                                       @Param("fileType") String fileType,
+                                       Pageable pageable);
+
     /**
      * Count datasets by owner.
      */
@@ -86,6 +125,149 @@ public interface DatasetRepository extends JpaRepository<Dataset, Integer> {
                                        @Param("fileType") FileType fileType,
                                        Pageable pageable);
 
+        @Query(value = """
+            SELECT d.*
+            FROM dataset d
+            LEFT JOIN (
+              SELECT a.dataset_id, COUNT(*) AS view_count
+              FROM audit_logs a
+              WHERE UPPER(a.action) = 'DATASET_VIEWED'
+              GROUP BY a.dataset_id
+            ) v ON v.dataset_id = d.dataset_id
+            WHERE (
+              d.access_level = 'PUBLIC'
+              OR d.user_id = :currentUserId
+              OR (
+                d.access_level = 'AUTHORIZED'
+                AND EXISTS (
+                  SELECT 1
+                  FROM dataset_access da
+                  WHERE da.dataset_id = d.dataset_id
+                  AND da.user_id = :currentUserId
+                )
+              )
+            )
+            AND (:search IS NULL
+              OR COALESCE(d.name, '') ILIKE CONCAT('%', :search, '%')
+              OR COALESCE(d.description, '') ILIKE CONCAT('%', :search, '%')
+              OR COALESCE(d.tag, '') ILIKE CONCAT('%', :search, '%'))
+            AND (:category IS NULL OR COALESCE(d.tag, '') ILIKE CONCAT('%', :category, '%'))
+            AND (:ownerId IS NULL OR d.user_id = :ownerId)
+            AND (:visibility IS NULL OR d.access_level = :visibility)
+            AND (:fileType IS NULL OR EXISTS (
+              SELECT 1 FROM dataset_tables t
+              WHERE t.dataset_id = d.dataset_id AND t.file_type = :fileType
+            ))
+            ORDER BY COALESCE(v.view_count, 0) DESC, d.created_at DESC
+            """,
+            countQuery = """
+            SELECT COUNT(*)
+            FROM dataset d
+            WHERE (
+              d.access_level = 'PUBLIC'
+              OR d.user_id = :currentUserId
+              OR (
+                d.access_level = 'AUTHORIZED'
+                AND EXISTS (
+                  SELECT 1
+                  FROM dataset_access da
+                  WHERE da.dataset_id = d.dataset_id
+                  AND da.user_id = :currentUserId
+                )
+              )
+            )
+            AND (:search IS NULL
+              OR COALESCE(d.name, '') ILIKE CONCAT('%', :search, '%')
+              OR COALESCE(d.description, '') ILIKE CONCAT('%', :search, '%')
+              OR COALESCE(d.tag, '') ILIKE CONCAT('%', :search, '%'))
+            AND (:category IS NULL OR COALESCE(d.tag, '') ILIKE CONCAT('%', :category, '%'))
+            AND (:ownerId IS NULL OR d.user_id = :ownerId)
+            AND (:visibility IS NULL OR d.access_level = :visibility)
+            AND (:fileType IS NULL OR EXISTS (
+              SELECT 1 FROM dataset_tables t
+              WHERE t.dataset_id = d.dataset_id AND t.file_type = :fileType
+            ))
+            """,
+            nativeQuery = true)
+        Page<Dataset> searchAccessibleDatasetsOrderByViews(@Param("currentUserId") Integer currentUserId,
+                                   @Param("search") String search,
+                                   @Param("category") String category,
+                                   @Param("ownerId") Integer ownerId,
+                                   @Param("visibility") String visibility,
+                                   @Param("fileType") String fileType,
+                                   Pageable pageable);
+
+        @Query(value = """
+            SELECT d.*
+            FROM dataset d
+            LEFT JOIN (
+              SELECT dataset_id, AVG(rating_value) AS avg_rating
+              FROM rates
+              GROUP BY dataset_id
+            ) r ON r.dataset_id = d.dataset_id
+            WHERE (
+              d.access_level = 'PUBLIC'
+              OR d.user_id = :currentUserId
+              OR (
+                d.access_level = 'AUTHORIZED'
+                AND EXISTS (
+                  SELECT 1
+                  FROM dataset_access da
+                  WHERE da.dataset_id = d.dataset_id
+                  AND da.user_id = :currentUserId
+                )
+              )
+            )
+            AND (:search IS NULL
+              OR COALESCE(d.name, '') ILIKE CONCAT('%', :search, '%')
+              OR COALESCE(d.description, '') ILIKE CONCAT('%', :search, '%')
+              OR COALESCE(d.tag, '') ILIKE CONCAT('%', :search, '%'))
+            AND (:category IS NULL OR COALESCE(d.tag, '') ILIKE CONCAT('%', :category, '%'))
+            AND (:ownerId IS NULL OR d.user_id = :ownerId)
+            AND (:visibility IS NULL OR d.access_level = :visibility)
+            AND (:fileType IS NULL OR EXISTS (
+              SELECT 1 FROM dataset_tables t
+              WHERE t.dataset_id = d.dataset_id AND t.file_type = :fileType
+            ))
+            ORDER BY COALESCE(r.avg_rating, -1) DESC, d.created_at DESC
+            """,
+            countQuery = """
+            SELECT COUNT(*)
+            FROM dataset d
+            WHERE (
+              d.access_level = 'PUBLIC'
+              OR d.user_id = :currentUserId
+              OR (
+                d.access_level = 'AUTHORIZED'
+                AND EXISTS (
+                  SELECT 1
+                  FROM dataset_access da
+                  WHERE da.dataset_id = d.dataset_id
+                  AND da.user_id = :currentUserId
+                )
+              )
+            )
+            AND (:search IS NULL
+              OR COALESCE(d.name, '') ILIKE CONCAT('%', :search, '%')
+              OR COALESCE(d.description, '') ILIKE CONCAT('%', :search, '%')
+              OR COALESCE(d.tag, '') ILIKE CONCAT('%', :search, '%'))
+            AND (:category IS NULL OR COALESCE(d.tag, '') ILIKE CONCAT('%', :category, '%'))
+            AND (:ownerId IS NULL OR d.user_id = :ownerId)
+            AND (:visibility IS NULL OR d.access_level = :visibility)
+            AND (:fileType IS NULL OR EXISTS (
+              SELECT 1 FROM dataset_tables t
+              WHERE t.dataset_id = d.dataset_id AND t.file_type = :fileType
+            ))
+            """,
+            nativeQuery = true)
+        Page<Dataset> searchAccessibleDatasetsOrderByRating(@Param("currentUserId") Integer currentUserId,
+                                   @Param("search") String search,
+                                   @Param("category") String category,
+                                   @Param("ownerId") Integer ownerId,
+                                   @Param("visibility") String visibility,
+                                   @Param("fileType") String fileType,
+                                   Pageable pageable);
+
         @Query("""
               SELECT d
               FROM Dataset d
@@ -96,6 +278,59 @@ public interface DatasetRepository extends JpaRepository<Dataset, Integer> {
               ORDER BY d.createdAt DESC
               """)
         Page<Dataset> findSharedWithMe(@Param("currentUserId") Integer currentUserId, Pageable pageable);
+
+        @Query(value = """
+            SELECT d.*
+            FROM dataset d
+            WHERE d.access_level = 'AUTHORIZED'
+              AND d.user_id <> :currentUserId
+              AND EXISTS (
+                SELECT 1
+                FROM dataset_access da
+                WHERE da.dataset_id = d.dataset_id
+                  AND da.user_id = :currentUserId
+              )
+            AND (:search IS NULL
+              OR COALESCE(d.name, '') ILIKE CONCAT('%', :search, '%')
+              OR COALESCE(d.description, '') ILIKE CONCAT('%', :search, '%')
+              OR COALESCE(d.tag, '') ILIKE CONCAT('%', :search, '%'))
+            AND (:category IS NULL OR COALESCE(d.tag, '') ILIKE CONCAT('%', :category, '%'))
+            AND (:visibility IS NULL OR d.access_level = :visibility)
+            AND (:fileType IS NULL OR EXISTS (
+              SELECT 1 FROM dataset_tables t
+              WHERE t.dataset_id = d.dataset_id AND t.file_type = :fileType
+            ))
+            ORDER BY d.created_at DESC
+            """,
+            countQuery = """
+            SELECT COUNT(*)
+            FROM dataset d
+            WHERE d.access_level = 'AUTHORIZED'
+              AND d.user_id <> :currentUserId
+              AND EXISTS (
+                SELECT 1
+                FROM dataset_access da
+                WHERE da.dataset_id = d.dataset_id
+                  AND da.user_id = :currentUserId
+              )
+            AND (:search IS NULL
+              OR COALESCE(d.name, '') ILIKE CONCAT('%', :search, '%')
+              OR COALESCE(d.description, '') ILIKE CONCAT('%', :search, '%')
+              OR COALESCE(d.tag, '') ILIKE CONCAT('%', :search, '%'))
+            AND (:category IS NULL OR COALESCE(d.tag, '') ILIKE CONCAT('%', :category, '%'))
+            AND (:visibility IS NULL OR d.access_level = :visibility)
+            AND (:fileType IS NULL OR EXISTS (
+              SELECT 1 FROM dataset_tables t
+              WHERE t.dataset_id = d.dataset_id AND t.file_type = :fileType
+            ))
+            """,
+            nativeQuery = true)
+        Page<Dataset> searchSharedWithMeDatasets(@Param("currentUserId") Integer currentUserId,
+                                              @Param("search") String search,
+                                              @Param("category") String category,
+                                              @Param("visibility") String visibility,
+                                              @Param("fileType") String fileType,
+                                              Pageable pageable);
 
         @Query("""
               SELECT d

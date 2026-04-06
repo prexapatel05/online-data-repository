@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.5;">
+    <h3 style="color:#0f3656;">New reply to your comment</h3>
+    <p>Hi <strong th:text="${recipientName}">User</strong>,</p>
+    <p><strong th:text="${actorName}">Someone</strong> replied in the discussion for <strong th:text="${datasetName}">Dataset</strong>.</p>
+    <blockquote style="border-left:3px solid #93c5fd; margin:10px 0; padding-left:10px; color:#374151;" th:text="${commentText}">Reply text</blockquote>
+    <p><a th:href="${datasetUrl}">View discussion</a></p>
+</body>
+</html>

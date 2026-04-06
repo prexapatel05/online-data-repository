@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.onlinedatatepo.data_repository.config.DatasetTagCatalog;
 import com.onlinedatatepo.data_repository.entity.AuditLog;
+import com.onlinedatatepo.data_repository.entity.AccessLevel;
 import com.onlinedatatepo.data_repository.entity.Dataset;
+import com.onlinedatatepo.data_repository.entity.FileType;
 import com.onlinedatatepo.data_repository.entity.User;
 import com.onlinedatatepo.data_repository.repository.AuditLogRepository;
 import com.onlinedatatepo.data_repository.service.AuthService;
@@ -81,19 +83,34 @@ public class DashboardController {
     @GetMapping("/my-datasets")
     public String myDatasets(@RequestParam(value = "myPage", defaultValue = "0") int myPage,
                              @RequestParam(value = "sharedPage", defaultValue = "0") int sharedPage,
+                             @RequestParam(value = "search", required = false) String search,
+                             @RequestParam(value = "category", required = false) String category,
+                             @RequestParam(value = "visibility", required = false) String visibility,
+                             @RequestParam(value = "format", required = false) String format,
                              Authentication authentication,
                              Model model) {
         User user = authService.findByEmail(authentication.getName());
         model.addAttribute("user", user);
 
-        Page<Dataset> myDatasets = datasetService.getDatasetsByUser(
+        AccessLevel selectedVisibility = parseAccessLevel(visibility);
+        FileType selectedFormat = parseFileType(format);
+
+        Page<Dataset> myDatasets = datasetService.searchOwnedDatasets(
                 user.getUserId(),
-                PageRequest.of(Math.max(0, myPage), 12, Sort.by(Sort.Direction.DESC, "createdAt"))
+                search,
+                category,
+                selectedVisibility,
+                selectedFormat,
+                PageRequest.of(Math.max(0, myPage), 12)
         );
 
-        Page<Dataset> sharedWithMeDatasets = datasetService.getSharedWithMeDatasets(
+        Page<Dataset> sharedWithMeDatasets = datasetService.searchSharedWithMeDatasets(
             user.getUserId(),
-            PageRequest.of(Math.max(0, sharedPage), 12, Sort.by(Sort.Direction.DESC, "createdAt"))
+            search,
+            category,
+            selectedVisibility,
+            selectedFormat,
+                        PageRequest.of(Math.max(0, sharedPage), 12)
         );
 
         List<Integer> allDatasetIds = new java.util.ArrayList<>(myDatasets.getContent().stream()
@@ -112,6 +129,41 @@ public class DashboardController {
         model.addAttribute("myTotalPages", myDatasets.getTotalPages());
         model.addAttribute("sharedCurrentPage", sharedWithMeDatasets.getNumber());
         model.addAttribute("sharedTotalPages", sharedWithMeDatasets.getTotalPages());
+                model.addAttribute("browseCategories", DatasetTagCatalog.TAGS);
+                model.addAttribute("selectedSearch", search == null ? "" : search);
+                model.addAttribute("selectedCategory", category == null ? "" : category);
+                model.addAttribute("selectedVisibility", visibility == null ? "" : visibility);
+                model.addAttribute("selectedFormat", format == null ? "" : format);
+                model.addAttribute("hasMyDatasetFilters", hasMyDatasetFilters(search, category, visibility, format));
         return "my-datasets";
     }
+
+        private AccessLevel parseAccessLevel(String value) {
+                if (value == null || value.isBlank()) {
+                        return null;
+                }
+                try {
+                        return AccessLevel.valueOf(value.trim().toUpperCase());
+                } catch (IllegalArgumentException ex) {
+                        return null;
+                }
+        }
+
+        private FileType parseFileType(String value) {
+                if (value == null || value.isBlank()) {
+                        return null;
+                }
+                try {
+                        return FileType.valueOf(value.trim().toUpperCase());
+                } catch (IllegalArgumentException ex) {
+                        return null;
+                }
+        }
+
+        private boolean hasMyDatasetFilters(String search, String category, String visibility, String format) {
+                return (search != null && !search.isBlank())
+                                || (category != null && !category.isBlank())
+                                || (visibility != null && !visibility.isBlank())
+                                || (format != null && !format.isBlank());
+        }
 }

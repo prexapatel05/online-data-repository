@@ -22,7 +22,56 @@
             </div>
 
             <h1 class="page-title">My Datasets</h1>
-            <p class="page-subtitle">All datasets you created, including private, public, and authorized visibility.</p>
+            <p class="page-subtitle">Search and filter the datasets you own or have been authorized to access.</p>
+
+            <form method="get" th:action="@{/my-datasets}" class="datasets-browser-card" style="margin-top: 16px;">
+                <div class="datasets-toolbar">
+                    <div class="browse-search-field">
+                        <i data-lucide="search" class="browse-field-icon"></i>
+                        <input id="search" name="search" th:value="${selectedSearch}" placeholder="Search your datasets by name, description, or tag">
+                    </div>
+
+                    <button type="submit" class="btn-next browse-apply-btn">Apply Filters</button>
+                    <a class="btn-next btn-light browse-reset-btn" th:href="@{/my-datasets}">Reset</a>
+                </div>
+
+                <details class="browse-filter-details" th:attr="open=${hasMyDatasetFilters ? 'open' : null}">
+                    <summary class="browse-filter-summary">
+                        <span class="browse-summary-label"><i data-lucide="filter"></i> Filters</span>
+                        <span class="browse-summary-hint">Category, format, visibility</span>
+                    </summary>
+
+                    <div class="browse-filter-panel">
+                        <div class="browse-filter-grid">
+                            <div class="form-group">
+                                <label for="category">Category</label>
+                                <select id="category" name="category">
+                                    <option value="">All categories</option>
+                                    <option th:each="cat : ${browseCategories}" th:value="${cat}" th:selected="${selectedCategory == cat}" th:text="${cat}">Category</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="format">Format</label>
+                                <select id="format" name="format">
+                                    <option value="">All formats</option>
+                                    <option value="CSV" th:selected="${selectedFormat == 'CSV'}">CSV</option>
+                                    <option value="TSV" th:selected="${selectedFormat == 'TSV'}">TSV</option>
+                                    <option value="XLSX" th:selected="${selectedFormat == 'XLSX'}">Excel</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="visibility">Visibility</label>
+                                <select id="visibility" name="visibility">
+                                    <option value="">All visibility</option>
+                                    <option value="PUBLIC" th:selected="${selectedVisibility == 'PUBLIC'}">Public</option>
+                                    <option value="PRIVATE" th:selected="${selectedVisibility == 'PRIVATE'}">Private</option>
+                                    <option value="AUTHORIZED" th:selected="${selectedVisibility == 'AUTHORIZED'}">Authorized</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+            </form>
 
             <div class="section-header" style="margin-top: 24px;">
                 <h2><i data-lucide="folder-open" class="section-icon"></i> Owned Datasets</h2>
@@ -68,11 +117,11 @@
                 <div class="upload-actions" style="margin-top: 12px;" th:if="${myTotalPages > 1}">
                      <a class="btn-next btn-light"
                          th:if="${myCurrentPage > 0}"
-                         th:href="@{/my-datasets(myPage=${myCurrentPage - 1}, sharedPage=${sharedCurrentPage})}">Previous</a>
+                         th:href="@{/my-datasets(myPage=${myCurrentPage - 1}, sharedPage=${sharedCurrentPage}, search=${selectedSearch}, category=${selectedCategory}, visibility=${selectedVisibility}, format=${selectedFormat})}">Previous</a>
                      <span class="step-note">Owned page <span th:text="${myCurrentPage + 1}">1</span> of <span th:text="${myTotalPages}">1</span></span>
                      <a class="btn-next btn-light"
                          th:if="${myCurrentPage + 1 < myTotalPages}"
-                         th:href="@{/my-datasets(myPage=${myCurrentPage + 1}, sharedPage=${sharedCurrentPage})}">Next</a>
+                         th:href="@{/my-datasets(myPage=${myCurrentPage + 1}, sharedPage=${sharedCurrentPage}, search=${selectedSearch}, category=${selectedCategory}, visibility=${selectedVisibility}, format=${selectedFormat})}">Next</a>
                 </div>
 
             <div class="section-header" style="margin-top: 24px;">
@@ -119,11 +168,11 @@
             <div class="upload-actions" style="margin-top: 12px;" th:if="${sharedTotalPages > 1}">
                 <a class="btn-next btn-light"
                    th:if="${sharedCurrentPage > 0}"
-                   th:href="@{/my-datasets(myPage=${myCurrentPage}, sharedPage=${sharedCurrentPage - 1})}">Previous</a>
+                   th:href="@{/my-datasets(myPage=${myCurrentPage}, sharedPage=${sharedCurrentPage - 1}, search=${selectedSearch}, category=${selectedCategory}, visibility=${selectedVisibility}, format=${selectedFormat})}">Previous</a>
                 <span class="step-note">Shared page <span th:text="${sharedCurrentPage + 1}">1</span> of <span th:text="${sharedTotalPages}">1</span></span>
                 <a class="btn-next btn-light"
                    th:if="${sharedCurrentPage + 1 < sharedTotalPages}"
-                   th:href="@{/my-datasets(myPage=${myCurrentPage}, sharedPage=${sharedCurrentPage + 1})}">Next</a>
+                   th:href="@{/my-datasets(myPage=${myCurrentPage}, sharedPage=${sharedCurrentPage + 1}, search=${selectedSearch}, category=${selectedCategory}, visibility=${selectedVisibility}, format=${selectedFormat})}">Next</a>
             </div>
         </div>
     </div>

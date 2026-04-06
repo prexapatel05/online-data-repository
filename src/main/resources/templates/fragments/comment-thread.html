@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- Comment Thread Renderer - handles recursion -->
+<div th:fragment="renderComment(comment, datasetId)" class="discussion-comment" th:attr="data-comment-id=${comment.commentId}">
+    <!-- Comment Header -->
+    <div class="comment-header">
+        <div class="comment-meta">
+            <span class="comment-author" th:text="${comment.user != null ? (comment.user.fullName != null ? comment.user.fullName : comment.user.username) : 'Anonymous'}">User</span>
+            <span class="comment-time" th:text="${#temporals.format(comment.createdAt, 'MMM d, yyyy h:mm a')}">Apr 6, 2026 10:20 AM</span>
+        </div>
+    </div>
+
+    <!-- Comment Body -->
+    <div class="comment-body">
+        <p class="comment-text" th:text="${comment.content}">Comment body</p>
+    </div>
+
+    <!-- Comment Actions -->
+    <div class="comment-actions">
+        <button type="button" class="comment-action-btn reply-btn" th:attr="data-comment-id=${comment.commentId}">
+            <i data-lucide="reply"></i>
+            Reply
+        </button>
+        <span class="reply-count" th:if="${comment.replies != null and !#lists.isEmpty(comment.replies)}" style="margin-left: 12px;">
+            <button type="button" class="comment-action-btn toggle-replies" th:attr="data-comment-id=${comment.commentId}">
+                <i data-lucide="chevron-down"></i>
+                <span class="reply-text" th:text="${#lists.size(comment.replies) + ' ' + (#lists.size(comment.replies) == 1 ? 'reply' : 'replies')}">2 replies</span>
+            </button>
+        </span>
+    </div>
+
+    <!-- Reply Form (Hidden by default) -->
+    <form th:action="@{'/datasets/' + ${datasetId} + '/comments'}" method="post" class="reply-form hidden-form" th:attr="data-comment-id=${comment.commentId}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <input type="hidden" name="parentId" th:value="${comment.commentId}">
+        <div class="form-group">
+            <textarea name="content" rows="2" maxlength="2000" placeholder="Write a reply..." class="comment-input" required></textarea>
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <button type="submit" class="btn-comment btn-small">Reply</button>
+            <button type="button" class="btn-cancel btn-small">Cancel</button>
+        </div>
+    </form>
+
+    <!-- Nested Replies (Recursive) -->
+    <div class="replies-container hidden-form" th:if="${comment.replies != null and !#lists.isEmpty(comment.replies)}" th:attr="data-comment-id=${comment.commentId}">
+        <div class="discussion-reply">
+            <div th:each="reply : ${comment.replies}" th:include="~{fragments/comment-thread :: renderComment(${reply}, ${datasetId})}"></div>
+        </div>
+    </div>
+</div>
+
+</html>

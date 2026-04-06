@@ -39,6 +39,19 @@ app.upload.dir=uploads
 spring.thymeleaf.check-template-location=false
 spring.thymeleaf.cache=false
 
+# Mail (Gmail SMTP)
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=${MAIL_USERNAME:}
+spring.mail.password=${MAIL_PASSWORD:}
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+
+# App mail defaults
+app.mail.from=${MAIL_FROM:noreply@datahub.local}
+app.mail.from-name=${MAIL_FROM_NAME:DataHub}
+app.base-url=${APP_BASE_URL:http://localhost:8080}
+
 # DevTools - Auto Restart & LiveReload
 spring.devtools.restart.enabled=true
 spring.devtools.livereload.enabled=true

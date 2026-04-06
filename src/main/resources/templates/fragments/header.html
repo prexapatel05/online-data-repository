@@ -5,13 +5,21 @@
         <input type="text" placeholder="Search datasets...">
     </div>
     <div class="header-right">
-        <div class="notification-bell"><i data-lucide="bell"></i></div>
-        <div class="header-user">
-            <div class="avatar-sm" th:text="${user != null ? user.fullName?.substring(0,1)?.toUpperCase() : 'U'}"></div>
-            <div class="user-label">
-                <strong th:text="${user != null ? user.fullName : 'User'}"></strong>
-                <span th:text="${user != null ? user.role : ''}"></span>
+        <div class="notification-shell" id="notificationShell">
+            <button type="button" class="notification-bell" id="notificationBell" aria-label="Notifications">
+                <i data-lucide="bell"></i>
+                <span class="notification-badge" id="notificationBadge" style="display:none;">0</span>
+            </button>
+            <div class="notification-dropdown" id="notificationDropdown" style="display:none;">
+                <div class="notification-dropdown-header">
+                    <strong>Notifications</strong>
+                    <button type="button" id="notificationMarkAll" class="notification-mark-all">Mark all read</button>
+                </div>
+                <div id="notificationList" class="notification-list"></div>
             </div>
         </div>
+        <a th:href="@{/settings}" class="header-user" aria-label="Open settings">
+            <div class="avatar-sm" th:text="${user != null ? user.fullName?.substring(0,1)?.toUpperCase() : 'U'}"></div>
+        </a>
     </div>
 </div>

@@ -53,6 +53,22 @@ public class DatasetService {
         return datasetRepository.findByUser_UserId(userId, pageable);
     }
 
+    public Page<Dataset> searchOwnedDatasets(Integer userId,
+                                             String search,
+                                             String category,
+                                             AccessLevel visibility,
+                                             FileType fileType,
+                                             Pageable pageable) {
+        return datasetRepository.searchOwnedDatasets(
+                userId,
+                normalizeFilter(search),
+                normalizeFilter(category),
+                visibility != null ? visibility.name() : null,
+                fileType != null ? fileType.name() : null,
+                pageable
+        );
+    }
+
     public List<Dataset> getTrendingDatasets(int limit) {
         Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "createdAt"));
         return datasetRepository.findByAccessLevel(AccessLevel.PUBLIC, pageable).getContent();
@@ -101,8 +117,60 @@ public class DatasetService {
         );
     }
 
+        public Page<Dataset> searchAccessibleDatasetsOrderByViews(Integer currentUserId,
+                                      String search,
+                                      String category,
+                                      Integer ownerId,
+                                      AccessLevel visibility,
+                                      FileType fileType,
+                                      Pageable pageable) {
+        return datasetRepository.searchAccessibleDatasetsOrderByViews(
+            currentUserId,
+            normalizeFilter(search),
+            normalizeFilter(category),
+            ownerId,
+            visibility != null ? visibility.name() : null,
+            fileType != null ? fileType.name() : null,
+            pageable
+        );
+        }
+
+    public Page<Dataset> searchAccessibleDatasetsOrderByRating(Integer currentUserId,
+                                      String search,
+                                      String category,
+                                      Integer ownerId,
+                                      AccessLevel visibility,
+                                      FileType fileType,
+                                      Pageable pageable) {
+        return datasetRepository.searchAccessibleDatasetsOrderByRating(
+            currentUserId,
+            normalizeFilter(search),
+            normalizeFilter(category),
+            ownerId,
+            visibility != null ? visibility.name() : null,
+            fileType != null ? fileType.name() : null,
+            pageable
+        );
+    }
+
     public Page<Dataset> getSharedWithMeDatasets(Integer currentUserId, Pageable pageable) {
         return datasetRepository.findSharedWithMe(currentUserId, pageable);
+    }
+
+    public Page<Dataset> searchSharedWithMeDatasets(Integer currentUserId,
+                                                    String search,
+                                                    String category,
+                                                    AccessLevel visibility,
+                                                    FileType fileType,
+                                                    Pageable pageable) {
+        return datasetRepository.searchSharedWithMeDatasets(
+                currentUserId,
+                normalizeFilter(search),
+                normalizeFilter(category),
+                visibility != null ? visibility.name() : null,
+                fileType != null ? fileType.name() : null,
+                pageable
+        );
     }
 
     public Dataset createDataset(String name, String description, String tag, AccessLevel accessLevel, User owner) {

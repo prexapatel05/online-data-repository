@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body>
+<body class="admin-page">
 <div class="app-layout">
     <div th:replace="~{fragments/sidebar :: sidebar('admin')}"></div>
 
@@ -49,10 +49,10 @@
                     <div class="upload-actions" style="margin: 8px 0 12px 0; justify-content: flex-start;">
                         <a class="btn-next btn-light"
                            th:classappend="${selectedPeriod == 'weekly'} ? ' active' : ''"
-                           th:href="@{/admin(period='weekly', page=${activityCurrentPage})}">Weekly</a>
+                                    th:href="@{/admin(period='weekly', page=${activityCurrentPage}, userId=${selectedUserId}, action=${selectedAction}, startDate=${startDate}, endDate=${endDate})}">Weekly</a>
                         <a class="btn-next btn-light"
                            th:classappend="${selectedPeriod == 'monthly'} ? ' active' : ''"
-                           th:href="@{/admin(period='monthly', page=${activityCurrentPage})}">Monthly</a>
+                                    th:href="@{/admin(period='monthly', page=${activityCurrentPage}, userId=${selectedUserId}, action=${selectedAction}, startDate=${startDate}, endDate=${endDate})}">Monthly</a>
                     </div>
                     <div class="admin-growth-chart-wrap">
                         <canvas id="growthChart"></canvas>
@@ -125,7 +125,46 @@
             </div>
 
             <div class="section-card" style="margin-top: 16px;">
-                <h3>Recent Activity (Last 30 Days, 50 rows/page)</h3>
+                <div class="section-header" style="margin-bottom: 8px;">
+                    <h3>Recent Activity (Last 30 Days, 50 rows/page)</h3>
+                    <a th:href="@{/admin/activity-export(userId=${selectedUserId}, action=${selectedAction}, startDate=${startDate}, endDate=${endDate})}">
+                        Export CSV
+                        <i data-lucide="download"></i>
+                    </a>
+                </div>
+
+                <form method="get" th:action="@{/admin}" class="upload-card" style="margin-top: 12px; max-width:none; margin-left:0; margin-right:0; padding: 16px;">
+                    <input type="hidden" name="period" th:value="${selectedPeriod}">
+                    <input type="hidden" name="page" value="0">
+
+                    <div class="filter-grid">
+                        <div class="form-group" style="margin:0;">
+                            <label for="userId">User</label>
+                            <select id="userId" name="userId">
+                                <option value="">All users</option>
+                                <option th:each="u : ${allUsers}" th:value="${u.userId}" th:selected="${selectedUserId != null && selectedUserId == u.userId}" th:text="${u.fullName != null ? u.fullName : u.username}"></option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label for="action">Action</label>
+                            <input id="action" name="action" th:value="${selectedAction}" placeholder="DATASET_VIEWED">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label for="startDate">Start Date</label>
+                            <input id="startDate" name="startDate" type="date" th:value="${startDate}">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label for="endDate">End Date</label>
+                            <input id="endDate" name="endDate" type="date" th:value="${endDate}">
+                        </div>
+                    </div>
+
+                    <div class="upload-actions" style="margin-top:12px; justify-content: flex-start;">
+                        <button type="submit" class="btn-next">Apply Filters</button>
+                        <a class="btn-next btn-light" th:href="@{/admin(period=${selectedPeriod})}">Reset</a>
+                    </div>
+                </form>
+
                 <div class="metadata-table-wrapper">
                     <table class="simple-table">
                         <thead>
@@ -153,9 +192,9 @@
                 </div>
 
                 <div class="upload-actions" style="margin-top: 12px;" th:if="${activityTotalPages > 1}">
-                    <a class="btn-next btn-light" th:if="${activityCurrentPage > 0}" th:href="@{/admin(page=${activityCurrentPage - 1}, period=${selectedPeriod})}">Previous</a>
+                    <a class="btn-next btn-light" th:if="${activityCurrentPage > 0}" th:href="@{/admin(page=${activityCurrentPage - 1}, period=${selectedPeriod}, userId=${selectedUserId}, action=${selectedAction}, startDate=${startDate}, endDate=${endDate})}">Previous</a>
                     <span class="step-note">Page <span th:text="${activityCurrentPage + 1}">1</span> of <span th:text="${activityTotalPages}">1</span></span>
-                    <a class="btn-next btn-light" th:if="${activityCurrentPage + 1 < activityTotalPages}" th:href="@{/admin(page=${activityCurrentPage + 1}, period=${selectedPeriod})}">Next</a>
+                    <a class="btn-next btn-light" th:if="${activityCurrentPage + 1 < activityTotalPages}" th:href="@{/admin(page=${activityCurrentPage + 1}, period=${selectedPeriod}, userId=${selectedUserId}, action=${selectedAction}, startDate=${startDate}, endDate=${endDate})}">Next</a>
                 </div>
             </div>
         </div>

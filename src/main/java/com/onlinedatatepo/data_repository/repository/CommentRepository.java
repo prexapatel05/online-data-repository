@@ -23,6 +23,12 @@ public interface CommentRepository extends JpaRepository<Comment, Integer> {
     @Query("SELECT c FROM Comment c WHERE c.dataset.datasetId = :datasetId AND c.parent IS NULL")
     List<Comment> findTopLevelCommentsByDatasetId(@Param("datasetId") Integer datasetId);
 
+    List<Comment> findTopLevelCommentsByDataset_DatasetIdAndParentIsNullOrderByCreatedAtDesc(Integer datasetId);
+
+    default List<Comment> findTopLevelCommentsByDatasetIdOrderByCreatedAtDesc(Integer datasetId) {
+        return findTopLevelCommentsByDataset_DatasetIdAndParentIsNullOrderByCreatedAtDesc(datasetId);
+    }
+
     /**
      * Find all comments for a dataset with pagination.
      */

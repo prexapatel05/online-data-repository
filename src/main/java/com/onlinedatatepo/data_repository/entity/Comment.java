@@ -50,5 +50,6 @@ public class Comment {
     private Comment parent;
 
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("createdAt ASC")
     private List<Comment> replies;
 }

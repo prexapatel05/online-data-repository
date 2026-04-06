@@ -16,13 +16,16 @@ public class AuthService {
     private final UserRepository userRepository;
     private final DatasetAccessRepository datasetAccessRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MailService mailService;
 
     public AuthService(UserRepository userRepository,
                        DatasetAccessRepository datasetAccessRepository,
-                       PasswordEncoder passwordEncoder) {
+                       PasswordEncoder passwordEncoder,
+                       MailService mailService) {
         this.userRepository = userRepository;
         this.datasetAccessRepository = datasetAccessRepository;
         this.passwordEncoder = passwordEncoder;
+        this.mailService = mailService;
     }
 
     public User register(RegisterRequest request) {
@@ -41,7 +44,9 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(UserRole.USER);
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        mailService.sendWelcomeEmail(savedUser);
+        return savedUser;
     }
 
     public User findByEmail(String email) {

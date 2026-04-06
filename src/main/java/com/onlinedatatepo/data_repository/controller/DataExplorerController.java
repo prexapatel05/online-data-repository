@@ -33,24 +33,30 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriUtils;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.onlinedatatepo.data_repository.config.DatasetTagCatalog;
 import com.onlinedatatepo.data_repository.entity.AccessLevel;
 import com.onlinedatatepo.data_repository.entity.AuditLog;
+import com.onlinedatatepo.data_repository.entity.Comment;
 import com.onlinedatatepo.data_repository.entity.Dataset;
 import com.onlinedatatepo.data_repository.entity.DatasetColumn;
 import com.onlinedatatepo.data_repository.entity.DatasetTable;
 import com.onlinedatatepo.data_repository.entity.FileType;
 import com.onlinedatatepo.data_repository.entity.User;
 import com.onlinedatatepo.data_repository.repository.AuditLogRepository;
+import com.onlinedatatepo.data_repository.repository.CommentRepository;
 import com.onlinedatatepo.data_repository.repository.DatasetColumnRepository;
 import com.onlinedatatepo.data_repository.repository.UserRepository;
 import com.onlinedatatepo.data_repository.service.AuthService;
+import com.onlinedatatepo.data_repository.service.CommentService;
 import com.onlinedatatepo.data_repository.service.DatasetService;
 import com.onlinedatatepo.data_repository.service.QueryExecutionService;
+import com.onlinedatatepo.data_repository.service.RatingService;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -66,25 +72,34 @@ public class DataExplorerController {
     private final DatasetService datasetService;
     private final AuthService authService;
     private final AuditLogRepository auditLogRepository;
+    private final CommentRepository commentRepository;
     private final DatasetColumnRepository datasetColumnRepository;
     private final QueryExecutionService queryExecutionService;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
+    private final CommentService commentService;
+    private final RatingService ratingService;
 
     public DataExplorerController(DatasetService datasetService,
                                   AuthService authService,
                                   AuditLogRepository auditLogRepository,
+                                  CommentRepository commentRepository,
                                   DatasetColumnRepository datasetColumnRepository,
                                   QueryExecutionService queryExecutionService,
                                   UserRepository userRepository,
-                                  ObjectMapper objectMapper) {
+                                  ObjectMapper objectMapper,
+                                  CommentService commentService,
+                                  RatingService ratingService) {
         this.datasetService = datasetService;
         this.authService = authService;
         this.auditLogRepository = auditLogRepository;
+        this.commentRepository = commentRepository;
         this.datasetColumnRepository = datasetColumnRepository;
         this.queryExecutionService = queryExecutionService;
         this.userRepository = userRepository;
         this.objectMapper = objectMapper;
+        this.commentService = commentService;
+        this.ratingService = ratingService;
     }
 
     @GetMapping("/datasets")
@@ -93,6 +108,7 @@ public class DataExplorerController {
                                @RequestParam(value = "ownerId", required = false) Integer ownerId,
                                @RequestParam(value = "visibility", required = false) String visibility,
                                @RequestParam(value = "format", required = false) String format,
+                               @RequestParam(value = "sort", defaultValue = "recent") String sort,
                                @RequestParam(value = "page", defaultValue = "0") int page,
                                @RequestParam(value = "size", defaultValue = "12") int size,
                                org.springframework.security.core.Authentication authentication,
@@ -102,9 +118,16 @@ public class DataExplorerController {
 
         AccessLevel visibilityFilter = parseVisibility(visibility);
         FileType fileTypeFilter = parseFileType(format);
+        String selectedSort = normalizeDatasetSort(sort);
 
-        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1), Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Dataset> datasets = datasetService.searchAccessibleDatasets(
+        Pageable pageable;
+        Page<Dataset> datasets;
+
+        switch (selectedSort) {
+            case "alpha" -> {
+            pageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1),
+                Sort.by(Sort.Order.asc("name"), Sort.Order.desc("createdAt")));
+            datasets = datasetService.searchAccessibleDatasets(
                 currentUser.getUserId(),
                 search,
                 category,
@@ -112,7 +135,46 @@ public class DataExplorerController {
                 visibilityFilter,
                 fileTypeFilter,
                 pageable
-        );
+            );
+            }
+            case "rating" -> {
+            pageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1));
+            datasets = datasetService.searchAccessibleDatasetsOrderByRating(
+                currentUser.getUserId(),
+                search,
+                category,
+                ownerId,
+                visibilityFilter,
+                fileTypeFilter,
+                pageable
+            );
+            }
+            case "views" -> {
+            pageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1));
+            datasets = datasetService.searchAccessibleDatasetsOrderByViews(
+                currentUser.getUserId(),
+                search,
+                category,
+                ownerId,
+                visibilityFilter,
+                fileTypeFilter,
+                pageable
+            );
+            }
+            default -> {
+            pageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1),
+                Sort.by(Sort.Direction.DESC, "createdAt"));
+            datasets = datasetService.searchAccessibleDatasets(
+                currentUser.getUserId(),
+                search,
+                category,
+                ownerId,
+                visibilityFilter,
+                fileTypeFilter,
+                pageable
+            );
+            }
+        }
 
         // Get stats for each dataset
         List<Integer> datasetIds = datasets.getContent().stream()
@@ -131,12 +193,40 @@ public class DataExplorerController {
         model.addAttribute("ownerId", ownerId);
         model.addAttribute("visibility", visibilityFilter != null ? visibilityFilter.name() : "");
         model.addAttribute("format", fileTypeFilter != null ? fileTypeFilter.name() : "");
-        model.addAttribute("owners", userRepository.findAllByOrderByFullNameAsc(PageRequest.of(0, 200)).getContent());
+        model.addAttribute("sort", selectedSort);
+        model.addAttribute("browseCategories", DatasetTagCatalog.TAGS);
+        List<User> owners = userRepository.findAllByOrderByFullNameAsc(PageRequest.of(0, 200)).getContent();
+        model.addAttribute("owners", owners);
+        model.addAttribute("selectedOwnerLabel", ownerId == null
+            ? ""
+            : owners.stream()
+                .filter(owner -> owner.getUserId() != null && owner.getUserId().equals(ownerId))
+                .findFirst()
+                .map(this::ownerSearchLabel)
+                .orElse(""));
+        model.addAttribute("hasDatasetFilters",
+            (search != null && !search.isBlank())
+            || (category != null && !category.isBlank())
+            || ownerId != null
+            || visibilityFilter != null
+            || fileTypeFilter != null);
 
         return "datasets";
     }
 
+    private String normalizeDatasetSort(String sort) {
+        if (sort == null) {
+            return "recent";
+        }
+        String normalized = sort.trim().toLowerCase();
+        return switch (normalized) {
+            case "views", "alpha", "rating", "recent" -> normalized;
+            default -> "recent";
+        };
+    }
+
     @GetMapping("/datasets/{datasetId}")
+    @org.springframework.transaction.annotation.Transactional
     public String datasetDetailPage(@PathVariable Integer datasetId,
                                     @RequestParam(value = "tab", defaultValue = "overview") String tab,
                                     org.springframework.security.core.Authentication authentication,
@@ -227,6 +317,11 @@ public class DataExplorerController {
             ? primaryTable.getFileType().name()
             : "N/A";
         String datasetSize = primaryTable != null ? resolveReadableFileSize(primaryTable.getFilePath()) : "N/A";
+        List<Comment> topLevelComments = commentService.getTopLevelComments(datasetId);
+        Long commentCount = commentService.countComments(datasetId);
+        Double averageRating = ratingService.averageRating(datasetId);
+        Long ratingCount = ratingService.ratingCount(datasetId);
+        Integer userRating = ratingService.currentUserRating(currentUser.getUserId(), datasetId);
 
         model.addAttribute("dataset", dataset);
         model.addAttribute("tab", normalizeTab(tab));
@@ -249,12 +344,107 @@ public class DataExplorerController {
         model.addAttribute("metadataGeneralEntries", metadataGeneralEntries);
         model.addAttribute("tableDetails", tableDetails);
         model.addAttribute("hasMetadata", !metadataColumns.isEmpty());
+        model.addAttribute("comments", topLevelComments);
+        model.addAttribute("commentCount", commentCount);
+        model.addAttribute("averageRating", averageRating == null ? null : String.format("%.1f", averageRating));
+        model.addAttribute("ratingCount", ratingCount);
+        model.addAttribute("userRating", userRating);
 
         if ("overview".equals(normalizeTab(tab))) {
             createAuditLog(currentUser, dataset, "DATASET_VIEWED", "Viewed dataset details (tab: overview).");
         }
 
         return "dataset-detail";
+    }
+
+    @PostMapping("/datasets/{datasetId}/comments")
+    public String addComment(@PathVariable Integer datasetId,
+                             @RequestParam("content") String content,
+                             @RequestParam(value = "parentId", required = false) Integer parentId,
+                             org.springframework.security.core.Authentication authentication,
+                             RedirectAttributes redirectAttributes) {
+        User currentUser = authService.findByEmail(authentication.getName());
+        try {
+            Comment saved = commentService.addComment(currentUser, datasetId, parentId, content);
+            if (parentId == null) {
+                createAuditLog(currentUser, saved.getDataset(), "COMMENT_CREATED", "Added a comment on dataset discussion.");
+            } else {
+                createAuditLog(currentUser, saved.getDataset(), "COMMENT_REPLIED", "Replied to a dataset discussion comment.");
+            }
+            redirectAttributes.addFlashAttribute("success", "Comment posted successfully.");
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/datasets/" + datasetId + "?tab=discussion";
+    }
+
+    @PostMapping("/datasets/{datasetId}/ratings")
+    public String rateDataset(@PathVariable Integer datasetId,
+                              @RequestParam("ratingValue") Integer ratingValue,
+                              org.springframework.security.core.Authentication authentication,
+                              RedirectAttributes redirectAttributes) {
+        User currentUser = authService.findByEmail(authentication.getName());
+        try {
+            var savedRating = ratingService.rateDataset(currentUser, datasetId, ratingValue == null ? 0 : ratingValue);
+            createAuditLog(currentUser, savedRating.getDataset(), "DATASET_RATED", "Submitted dataset rating.");
+            redirectAttributes.addFlashAttribute("success", "Rating submitted.");
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/datasets/" + datasetId + "?tab=discussion";
+    }
+
+    @GetMapping("/datasets/{datasetId}/comments/{parentId}/nested")
+    @ResponseBody
+    public ResponseEntity<?> getNestedComments(@PathVariable Integer datasetId,
+                                               @PathVariable Integer parentId,
+                                               @RequestParam(value = "limit", defaultValue = "20") int limit,
+                                               org.springframework.security.core.Authentication authentication) {
+        User currentUser = authService.findByEmail(authentication.getName());
+
+        Optional<Dataset> datasetOptional = datasetService.findById(datasetId);
+        if (datasetOptional.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Dataset dataset = datasetOptional.get();
+        if (!datasetService.canAccessDataset(currentUser, dataset)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        // Find parent comment
+        Optional<Comment> parentOpt = commentRepository.findById(parentId);
+        if (parentOpt.isEmpty() || !parentId.equals(parentOpt.get().getCommentId())) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Comment parent = parentOpt.get();
+        // Verify parent belongs to this dataset
+        if (parent.getDataset() == null || !datasetId.equals(parent.getDataset().getDatasetId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        // Get nested replies
+        List<Comment> nestedReplies = parent.getReplies() != null 
+            ? parent.getReplies().stream().limit(limit).collect(Collectors.toList())
+            : Collections.emptyList();
+
+        // Build response DTO
+        List<Map<String, Object>> response = nestedReplies.stream().map(comment -> {
+            Map<String, Object> dto = new LinkedHashMap<>();
+            dto.put("commentId", comment.getCommentId());
+            dto.put("content", comment.getContent());
+            dto.put("authorName", comment.getUser() != null 
+                ? (comment.getUser().getFullName() != null ? comment.getUser().getFullName() : comment.getUser().getUsername())
+                : "Anonymous");
+            dto.put("createdAt", comment.getCreatedAt() != null 
+                ? comment.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a"))
+                : "Unknown");
+            dto.put("replyCount", comment.getReplies() != null ? comment.getReplies().size() : 0);
+            return dto;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/datasets/{datasetId}/download")
@@ -329,82 +519,6 @@ public class DataExplorerController {
 
         redirectAttributes.addFlashAttribute("success", "Dataset '" + deletedName + "' deleted successfully.");
         return "redirect:/my-datasets";
-    }
-
-    @GetMapping("/activity-log")
-    public String activityLogPage(@RequestParam(value = "userId", required = false) Integer userId,
-                                  @RequestParam(value = "action", required = false) String action,
-                                  @RequestParam(value = "startDate", required = false) String startDate,
-                                  @RequestParam(value = "endDate", required = false) String endDate,
-                                  @RequestParam(value = "page", defaultValue = "0") int page,
-                                  @RequestParam(value = "size", defaultValue = "20") int size,
-                                  org.springframework.security.core.Authentication authentication,
-                                  Model model) {
-        User currentUser = authService.findByEmail(authentication.getName());
-        model.addAttribute("user", currentUser);
-
-        LocalDateTime start = parseStartDate(startDate);
-        LocalDateTime end = parseEndDate(endDate);
-
-        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1), Sort.by(Sort.Direction.DESC, "timestamp"));
-        Page<AuditLog> logs = auditLogRepository.searchLogs(
-                userId,
-                normalizeText(action),
-                start,
-                end,
-                null,
-                pageable
-        );
-
-        model.addAttribute("logs", logs.getContent());
-        model.addAttribute("totalPages", logs.getTotalPages());
-        model.addAttribute("currentPage", logs.getNumber());
-        model.addAttribute("totalActivities", auditLogRepository.count());
-        model.addAttribute("downloadCount", auditLogRepository.countByActionIgnoreCase("DATASET_DOWNLOADED"));
-        model.addAttribute("viewCount", auditLogRepository.countByActionIgnoreCase("DATASET_VIEWED"));
-        model.addAttribute("editCount", auditLogRepository.countByActionIgnoreCase("DATASET_UPDATED"));
-        model.addAttribute("allUsers", userRepository.findAll(Sort.by(Sort.Direction.ASC, "fullName")));
-        model.addAttribute("selectedUserId", userId);
-        model.addAttribute("selectedAction", safeValue(action));
-        model.addAttribute("startDate", safeValue(startDate));
-        model.addAttribute("endDate", safeValue(endDate));
-
-        return "activity-log";
-    }
-
-    @GetMapping("/activity-log/export")
-    public ResponseEntity<byte[]> exportActivityLog(@RequestParam(value = "userId", required = false) Integer userId,
-                                                    @RequestParam(value = "action", required = false) String action,
-                                                    @RequestParam(value = "startDate", required = false) String startDate,
-                                                    @RequestParam(value = "endDate", required = false) String endDate) {
-        LocalDateTime start = parseStartDate(startDate);
-        LocalDateTime end = parseEndDate(endDate);
-
-        List<AuditLog> logs = auditLogRepository.searchLogs(
-                userId,
-                normalizeText(action),
-                start,
-                end,
-                null,
-                PageRequest.of(0, EXPORT_MAX_ROWS, Sort.by(Sort.Direction.DESC, "timestamp"))
-        ).getContent();
-
-        StringBuilder csv = new StringBuilder();
-        csv.append("Timestamp,User,Action,Dataset,Details\n");
-        for (AuditLog log : logs) {
-            csv.append(csvCell(formatDateTime(log.getTimestamp()))).append(',')
-                    .append(csvCell(log.getUser() != null ? defaultUserDisplayName(log.getUser()) : "System")).append(',')
-                    .append(csvCell(log.getAction())).append(',')
-                    .append(csvCell(log.getDataset() != null ? log.getDataset().getName() : "N/A")).append(',')
-                    .append(csvCell(log.getDetails()))
-                    .append('\n');
-        }
-
-        byte[] body = csv.toString().getBytes(StandardCharsets.UTF_8);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=activity-log.csv")
-                .contentType(MediaType.parseMediaType("text/csv"))
-                .body(body);
     }
 
     @GetMapping("/query-builder")
@@ -855,7 +969,7 @@ public class DataExplorerController {
             return "overview";
         }
         return switch (candidate) {
-            case "overview", "preview", "permissions", "activity", "statistics" -> candidate;
+            case "overview", "preview", "permissions", "discussion", "statistics" -> candidate;
             default -> "overview";
         };
     }
@@ -989,6 +1103,10 @@ public class DataExplorerController {
             return user.getUsername();
         }
         return user.getEmail();
+    }
+
+    private String ownerSearchLabel(User user) {
+        return defaultUserDisplayName(user) + " (@" + user.getUsername() + ")";
     }
 
     private String joinRow(List<String> values, char delimiter) {

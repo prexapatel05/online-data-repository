@@ -88,7 +88,7 @@
 
                     <div class="form-group" style="margin-bottom: 14px;">
                         <label for="tags">Tags</label>
-                        <select id="tags" name="tags" multiple style="min-height: 130px;">
+                        <select id="tags" name="tags" multiple class="upload-tag-select">
                             <option th:each="tag : ${availableTags}" th:value="${tag}" th:text="${tag}" th:selected="${selectedTags != null and #lists.contains(selectedTags, tag)}">Tag</option>
                         </select>
                         <span class="step-note">Select one or more tags. These are the same categories shown on dashboard.</span>

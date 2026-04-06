@@ -150,11 +150,19 @@
                             </div>
                             <span class="quick-link-arrow"><i data-lucide="chevron-right"></i></span>
                         </a>
-                        <a th:href="@{/activity-log}" class="quick-link">
+                        <a th:href="@{/query-builder}" class="quick-link">
+                            <div class="quick-link-icon"><i data-lucide="search"></i></div>
+                            <div class="quick-link-info">
+                                <h4>Query Builder</h4>
+                                <p>Build SQL-style filters and export results</p>
+                            </div>
+                            <span class="quick-link-arrow"><i data-lucide="chevron-right"></i></span>
+                        </a>
+                        <a th:href="@{/admin}" class="quick-link" th:if="${user != null and user.role != null and user.role.name() == 'ADMIN'}">
                             <div class="quick-link-icon"><i data-lucide="file-bar-chart"></i></div>
                             <div class="quick-link-info">
-                                <h4>View Activity Log</h4>
-                                <p>Filter and export audit history</p>
+                                <h4>Admin Activity Filters</h4>
+                                <p>Filter and export audit history in admin panel</p>
                             </div>
                             <span class="quick-link-arrow"><i data-lucide="chevron-right"></i></span>
                         </a>

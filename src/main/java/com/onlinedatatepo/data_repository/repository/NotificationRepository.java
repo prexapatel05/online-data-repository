@@ -30,6 +30,10 @@ public interface NotificationRepository extends JpaRepository<Notification, Inte
      */
     Page<Notification> findByUser_UserIdAndIsReadFalse(Integer userId, Pageable pageable);
 
+    Page<Notification> findByUser_UserIdOrderByTimestampDesc(Integer userId, Pageable pageable);
+
+    List<Notification> findByUser_UserIdAndIsReadFalseOrderByTimestampDesc(Integer userId);
+
     /**
      * Count unread notifications for a user.
      */

@@ -21,52 +21,108 @@
                 <span>Datasets</span>
             </div>
 
-            <div class="section-header" style="margin-top: 8px;">
-                <h2><i data-lucide="database" class="section-icon"></i> Browse Datasets</h2>
-                <a th:href="@{/upload}">Upload Dataset <i data-lucide="arrow-right"></i></a>
+            <div class="page-head" style="margin-top: 8px;">
+                <div>
+                    <h1 class="page-title">Browse Datasets</h1>
+                    <p class="page-subtitle">Discover public and authorized datasets available to your account.</p>
+                </div>
+                <a th:href="@{/upload}" class="btn-next btn-inline browse-head-action">
+                    <i data-lucide="upload-cloud"></i>
+                    Upload Dataset
+                </a>
             </div>
 
-            <form method="get" th:action="@{/datasets}" class="datasets-filter-card" style="margin-top: 16px;">
-                <div class="form-row" style="display:grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px;">
-                    <div class="form-group" style="margin:0;">
-                        <label for="search">Search</label>
-                        <input id="search" name="search" th:value="${search}" placeholder="Name, description, tag">
+            <form method="get" th:action="@{/datasets}" class="datasets-browser-card" style="margin-top: 16px;">
+                <div class="datasets-toolbar">
+                    <div class="browse-search-field">
+                        <i data-lucide="search" class="browse-field-icon"></i>
+                        <input id="search" name="search" th:value="${search}" placeholder="Search datasets, descriptions, or tags">
                     </div>
-                    <div class="form-group" style="margin:0;">
-                        <label for="category">Category</label>
-                        <input id="category" name="category" th:value="${category}" placeholder="Healthcare, Education...">
-                    </div>
-                    <div class="form-group" style="margin:0;">
-                        <label for="ownerId">Owner</label>
-                        <select id="ownerId" name="ownerId">
-                            <option value="">All owners</option>
-                            <option th:each="owner : ${owners}" th:value="${owner.userId}" th:selected="${ownerId != null && ownerId == owner.userId}" th:text="${owner.fullName != null ? owner.fullName : owner.username}"></option>
+
+                    <div class="browse-sort-field">
+                        <i data-lucide="arrow-up-down" class="browse-field-icon"></i>
+                        <select id="sort" name="sort" aria-label="Sort datasets">
+                            <option value="recent" th:selected="${sort == 'recent'}">Recently Uploaded</option>
+                            <option value="views" th:selected="${sort == 'views'}">Most Viewed</option>
+                            <option value="alpha" th:selected="${sort == 'alpha'}">Alphabetical (A-Z)</option>
+                            <option value="rating" th:selected="${sort == 'rating'}">Highest Rated</option>
                         </select>
                     </div>
-                    <div class="form-group" style="margin:0;">
-                        <label for="format">Format</label>
-                        <select id="format" name="format">
-                            <option value="">All formats</option>
-                            <option value="CSV" th:selected="${format == 'CSV'}">CSV</option>
-                            <option value="TSV" th:selected="${format == 'TSV'}">TSV</option>
-                            <option value="XLSX" th:selected="${format == 'XLSX'}">Excel</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="margin:0;">
-                        <label for="visibility">Visibility</label>
-                        <select id="visibility" name="visibility">
-                            <option value="">All visibility</option>
-                            <option value="PUBLIC" th:selected="${visibility == 'PUBLIC'}">Public</option>
-                            <option value="PRIVATE" th:selected="${visibility == 'PRIVATE'}">Private</option>
-                            <option value="AUTHORIZED" th:selected="${visibility == 'AUTHORIZED'}">Authorized</option>
-                        </select>
-                    </div>
+
+                    <button type="submit" class="btn-next browse-apply-btn">Apply Filters</button>
+                    <a class="btn-next btn-light browse-reset-btn" th:href="@{/datasets}">Reset</a>
                 </div>
-                <div class="upload-actions" style="margin-top: 16px;">
-                    <button type="submit" class="btn-next">Apply Filters</button>
-                    <a class="btn-next btn-light" th:href="@{/datasets}">Reset</a>
-                </div>
+
+                <details class="browse-filter-details" th:attr="open=${hasDatasetFilters ? 'open' : null}">
+                    <summary class="browse-filter-summary">
+                        <span class="browse-summary-label"><i data-lucide="filter"></i> Filters</span>
+                        <span class="browse-summary-hint">Category, owner, format, visibility</span>
+                    </summary>
+
+                    <div class="browse-filter-panel">
+                        <div class="browse-filter-grid">
+                            <div class="form-group">
+                                <label for="category">Category</label>
+                                <select id="category" name="category">
+                                    <option value="">All categories</option>
+                                    <option th:each="cat : ${browseCategories}" th:value="${cat}" th:selected="${category == cat}" th:text="${cat}">Category</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="ownerSearch">Owner</label>
+                                <input id="ownerSearch" type="text" th:value="${selectedOwnerLabel}" list="ownerOptions" placeholder="Search owner by name or username" autocomplete="off">
+                                <input id="ownerId" name="ownerId" type="hidden" th:value="${ownerId}">
+                                <datalist id="ownerOptions">
+                                    <option value=""></option>
+                                    <option th:each="owner : ${owners}"
+                                            th:value="${owner.fullName != null && !owner.fullName.isBlank() ? owner.fullName + ' (@' + owner.username + ')' : owner.username + ' (@' + owner.username + ')'}"
+                                            th:attr="data-owner-id=${owner.userId}"></option>
+                                </datalist>
+                            </div>
+                            <div class="form-group">
+                                <label for="format">Format</label>
+                                <select id="format" name="format">
+                                    <option value="">All formats</option>
+                                    <option value="CSV" th:selected="${format == 'CSV'}">CSV</option>
+                                    <option value="TSV" th:selected="${format == 'TSV'}">TSV</option>
+                                    <option value="XLSX" th:selected="${format == 'XLSX'}">Excel</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="visibility">Visibility</label>
+                                <select id="visibility" name="visibility">
+                                    <option value="">All visibility</option>
+                                    <option value="PUBLIC" th:selected="${visibility == 'PUBLIC'}">Public</option>
+                                    <option value="AUTHORIZED" th:selected="${visibility == 'AUTHORIZED'}">Authorized</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </details>
             </form>
+
+            <script th:inline="javascript">
+                document.addEventListener('DOMContentLoaded', function () {
+                    var ownerSearch = document.getElementById('ownerSearch');
+                    var ownerId = document.getElementById('ownerId');
+                    var ownerOptions = Array.prototype.slice.call(document.querySelectorAll('#ownerOptions option[data-owner-id]'));
+
+                    if (!ownerSearch || !ownerId) {
+                        return;
+                    }
+
+                    function syncOwnerId() {
+                        var match = ownerOptions.find(function (option) {
+                            return option.value === ownerSearch.value;
+                        });
+                        ownerId.value = match ? match.getAttribute('data-owner-id') : '';
+                    }
+
+                    ownerSearch.addEventListener('input', syncOwnerId);
+                    ownerSearch.addEventListener('change', syncOwnerId);
+                    syncOwnerId();
+                });
+            </script>
 
             <div class="section-header" style="margin-top: 20px;">
                 <h3>Results (<span th:text="${totalItems}">0</span>)</h3>
@@ -107,9 +163,9 @@
             </div>
 
             <div class="upload-actions" style="margin-top: 16px;" th:if="${totalPages > 1}">
-                <a class="btn-next btn-light" th:if="${currentPage > 0}" th:href="@{/datasets(page=${currentPage - 1}, search=${search}, category=${category}, ownerId=${ownerId}, format=${format}, visibility=${visibility})}">Previous</a>
+                <a class="btn-next btn-light" th:if="${currentPage > 0}" th:href="@{/datasets(page=${currentPage - 1}, search=${search}, category=${category}, ownerId=${ownerId}, format=${format}, visibility=${visibility}, sort=${sort})}">Previous</a>
                 <span class="step-note">Page <span th:text="${currentPage + 1}"></span> of <span th:text="${totalPages}"></span></span>
-                <a class="btn-next btn-light" th:if="${currentPage + 1 < totalPages}" th:href="@{/datasets(page=${currentPage + 1}, search=${search}, category=${category}, ownerId=${ownerId}, format=${format}, visibility=${visibility})}">Next</a>
+                <a class="btn-next btn-light" th:if="${currentPage + 1 < totalPages}" th:href="@{/datasets(page=${currentPage + 1}, search=${search}, category=${category}, ownerId=${ownerId}, format=${format}, visibility=${visibility}, sort=${sort})}">Next</a>
             </div>
         </div>
     </div>
