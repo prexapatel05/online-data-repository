@@ -523,6 +523,7 @@ public class DataExplorerController {
 
     @GetMapping("/query-builder")
     public String queryBuilderPage(@RequestParam(value = "datasetId", required = false) Integer datasetId,
+                                   @RequestParam(value = "tableId", required = false) Integer tableId,
                                    org.springframework.security.core.Authentication authentication,
                                    Model model) {
         User currentUser = authService.findByEmail(authentication.getName());
@@ -540,12 +541,23 @@ public class DataExplorerController {
 
         model.addAttribute("datasets", datasets);
         model.addAttribute("selectedDatasetId", datasetId);
+        model.addAttribute("datasetTables", Collections.emptyList());
+        model.addAttribute("selectedTableId", null);
+        model.addAttribute("selectedTableName", null);
         model.addAttribute("filters", Collections.singletonList(new QueryExecutionService.QueryFilter("", "=", "")));
         model.addAttribute("selectedColumns", Collections.emptyList());
 
         if (datasetId != null) {
-            DatasetTable table = resolvePrimaryTable(datasetId, currentUser, model);
+            List<DatasetTable> datasetTables = loadAccessibleTables(datasetId, currentUser, model);
+            if (datasetTables == null) {
+                return "query-builder";
+            }
+            model.addAttribute("datasetTables", datasetTables);
+
+            DatasetTable table = resolveSelectedTable(datasetTables, tableId, model);
             if (table != null) {
+                model.addAttribute("selectedTableId", table.getTableId());
+                model.addAttribute("selectedTableName", table.getTableName());
                 List<String> availableColumns = queryExecutionService.executeSelectProjection(
                         table,
                         Collections.emptyList(),
@@ -562,6 +574,7 @@ public class DataExplorerController {
 
     @PostMapping("/query-builder/execute")
     public String executeQuery(@RequestParam("datasetId") Integer datasetId,
+                               @RequestParam(value = "tableId", required = false) Integer tableId,
                                @RequestParam(value = "selectedColumns", required = false) List<String> selectedColumns,
                                @RequestParam(value = "filterColumn", required = false) List<String> filterColumns,
                                @RequestParam(value = "filterOperator", required = false) List<String> filterOperators,
@@ -583,11 +596,19 @@ public class DataExplorerController {
         ).getContent();
         model.addAttribute("datasets", datasets);
         model.addAttribute("selectedDatasetId", datasetId);
+        List<DatasetTable> datasetTables = loadAccessibleTables(datasetId, currentUser, model);
+        if (datasetTables == null) {
+            return "query-builder";
+        }
+        model.addAttribute("datasetTables", datasetTables);
 
-        DatasetTable table = resolvePrimaryTable(datasetId, currentUser, model);
+        DatasetTable table = resolveSelectedTable(datasetTables, tableId, model);
         if (table == null) {
             return "query-builder";
         }
+
+        model.addAttribute("selectedTableId", table.getTableId());
+        model.addAttribute("selectedTableName", table.getTableName());
 
         List<QueryExecutionService.QueryFilter> filters = buildFilters(filterColumns, filterOperators, filterValues);
         model.addAttribute("filters", filters.isEmpty()
@@ -619,6 +640,7 @@ public class DataExplorerController {
 
     @PostMapping("/query-builder/export")
     public void exportQuery(@RequestParam("datasetId") Integer datasetId,
+                            @RequestParam(value = "tableId", required = false) Integer tableId,
                             @RequestParam(value = "selectedColumns", required = false) List<String> selectedColumns,
                             @RequestParam(value = "filterColumn", required = false) List<String> filterColumns,
                             @RequestParam(value = "filterOperator", required = false) List<String> filterOperators,
@@ -627,7 +649,12 @@ public class DataExplorerController {
                             org.springframework.security.core.Authentication authentication,
                             HttpServletResponse response) throws Exception {
         User currentUser = authService.findByEmail(authentication.getName());
-        DatasetTable table = resolvePrimaryTable(datasetId, currentUser, null);
+        List<DatasetTable> datasetTables = loadAccessibleTables(datasetId, currentUser, null);
+        if (datasetTables == null) {
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            return;
+        }
+        DatasetTable table = resolveSelectedTable(datasetTables, tableId, null);
         if (table == null) {
             response.setStatus(HttpStatus.BAD_REQUEST.value());
             return;
@@ -670,11 +697,19 @@ public class DataExplorerController {
         createAuditLog(currentUser, table.getDataset(), "QUERY_EXPORTED", "Exported query result in " + normalizedFormat.toUpperCase() + " format.");
     }
 
-    private DatasetTable resolvePrimaryTable(Integer datasetId, User currentUser, Model model) {
+    private List<DatasetTable> loadAccessibleTables(Integer datasetId, User currentUser, Model model) {
         Optional<Dataset> datasetOptional = datasetService.findById(datasetId);
-        if (datasetOptional.isEmpty() || !datasetService.canAccessDataset(currentUser, datasetOptional.get())) {
+        if (datasetOptional.isEmpty()) {
             if (model != null) {
-                model.addAttribute("error", "Dataset not found or access denied.");
+                model.addAttribute("error", "Dataset not found.");
+            }
+            return null;
+        }
+
+        Dataset dataset = datasetOptional.get();
+        if (!datasetService.canAccessDataset(currentUser, dataset)) {
+            if (model != null) {
+                model.addAttribute("error", "You do not have access to this dataset.");
             }
             return null;
         }
@@ -686,7 +721,32 @@ public class DataExplorerController {
             }
             return null;
         }
-        return tables.get(0);
+
+        return tables;
+    }
+
+    private DatasetTable resolveSelectedTable(List<DatasetTable> tables, Integer tableId, Model model) {
+        if (tables == null || tables.isEmpty()) {
+            if (model != null) {
+                model.addAttribute("error", "No queryable table found for this dataset yet.");
+            }
+            return null;
+        }
+
+        if (tableId == null) {
+            return tables.get(0);
+        }
+
+        for (DatasetTable table : tables) {
+            if (table.getTableId() != null && table.getTableId().equals(tableId)) {
+                return table;
+            }
+        }
+
+        if (model != null) {
+            model.addAttribute("error", "Selected table not found for this dataset.");
+        }
+        return null;
     }
 
     private List<QueryExecutionService.QueryFilter> buildFilters(List<String> columns,

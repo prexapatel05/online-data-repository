@@ -32,7 +32,6 @@ public class UserSettingsController {
 
         UserProfileUpdateRequest profileRequest = new UserProfileUpdateRequest();
         profileRequest.setFullName(user.getFullName() == null ? "" : user.getFullName());
-        profileRequest.setEmail(user.getEmail() == null ? "" : user.getEmail());
 
         model.addAttribute("profileRequest", profileRequest);
         model.addAttribute("deleteRequest", new DeleteAccountRequest());
@@ -54,7 +53,7 @@ public class UserSettingsController {
         }
 
         try {
-            authService.updateProfile(user, request.getFullName(), request.getEmail());
+            authService.updateProfile(user, request.getFullName());
             redirectAttributes.addFlashAttribute("success", "Profile updated successfully.");
             return "redirect:/settings";
         } catch (IllegalArgumentException ex) {
@@ -75,7 +74,6 @@ public class UserSettingsController {
 
         UserProfileUpdateRequest profileRequest = new UserProfileUpdateRequest();
         profileRequest.setFullName(user.getFullName() == null ? "" : user.getFullName());
-        profileRequest.setEmail(user.getEmail() == null ? "" : user.getEmail());
         model.addAttribute("profileRequest", profileRequest);
 
         if (bindingResult.hasErrors()) {

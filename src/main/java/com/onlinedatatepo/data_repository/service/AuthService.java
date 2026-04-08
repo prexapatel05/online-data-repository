@@ -54,27 +54,18 @@ public class AuthService {
     }
 
     @Transactional
-    public User updateProfile(User user, String fullName, String email) {
+    public User updateProfile(User user, String fullName) {
         if (user == null) {
             throw new IllegalArgumentException("User not found");
         }
 
-        String normalizedEmail = email == null ? "" : email.trim().toLowerCase();
         String normalizedName = fullName == null ? "" : fullName.trim();
 
         if (normalizedName.isBlank()) {
             throw new IllegalArgumentException("Full name is required");
         }
-        if (normalizedEmail.isBlank()) {
-            throw new IllegalArgumentException("Email is required");
-        }
-
-        if (!normalizedEmail.equalsIgnoreCase(user.getEmail()) && userRepository.existsByEmail(normalizedEmail)) {
-            throw new IllegalArgumentException("Email is already used by another account");
-        }
 
         user.setFullName(normalizedName);
-        user.setEmail(normalizedEmail);
         return userRepository.save(user);
     }
 

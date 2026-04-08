@@ -30,11 +30,28 @@
                 <div class="query-card">
                     <h3>Select Dataset</h3>
                     <div class="form-group" style="margin-bottom:0;">
-                        <select id="datasetId" name="datasetId" required onchange="this.form.submit()">
+                        <select id="datasetId" name="datasetId" required onchange="var tableSelect = document.getElementById('tableId'); if (tableSelect) { tableSelect.selectedIndex = 0; } this.form.submit();">
                             <option value="">Select dataset</option>
                             <option th:each="dataset : ${datasets}" th:value="${dataset.datasetId}" th:selected="${selectedDatasetId != null && selectedDatasetId == dataset.datasetId}" th:text="${dataset.name}"></option>
                         </select>
                     </div>
+                </div>
+
+                <div class="query-card" th:if="${datasetTables != null and !#lists.isEmpty(datasetTables)}">
+                    <h3>Run Query On</h3>
+                    <p class="step-note" style="margin-top:4px;">Choose the table inside this dataset to query.</p>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <select id="tableId" name="tableId" required onchange="this.form.submit()">
+                            <option value="">Use first available table</option>
+                            <option th:each="table : ${datasetTables}"
+                                    th:value="${table.tableId}"
+                                    th:selected="${selectedTableId != null && selectedTableId == table.tableId}"
+                                    th:text="${table.tableName + ' (' + table.fileType + ')'}">table.csv</option>
+                        </select>
+                    </div>
+                    <p class="step-note" style="margin-top:8px;" th:if="${selectedTableName != null}">
+                        Currently selected table: <strong th:text="${selectedTableName}">table.csv</strong>
+                    </p>
                 </div>
 
                 <div class="query-card" th:if="${availableColumns != null}">
@@ -87,6 +104,7 @@
                     </div>
                     <form method="post" th:action="@{/query-builder/export}" class="qb-export-actions">
                         <input type="hidden" name="datasetId" th:value="${selectedDatasetId}">
+                        <input type="hidden" name="tableId" th:value="${selectedTableId}">
                         <input type="hidden" name="selectedColumns" th:each="col : ${selectedColumns}" th:value="${col}">
                         <input type="hidden" name="filterColumn" th:each="f : ${filters}" th:value="${f.column}">
                         <input type="hidden" name="filterOperator" th:each="f : ${filters}" th:value="${f.operator}">

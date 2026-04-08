@@ -96,7 +96,7 @@
 
                     <div class="form-group" style="margin-bottom: 14px;" th:if="${editingMode}">
                         <label for="changeSummary">Change Summary (Optional)</label>
-                        <textarea id="changeSummary" name="changeSummary" rows="3" placeholder="Describe what changed in this edit version"></textarea>
+                        <textarea id="changeSummary" name="changeSummary" rows="4" class="fixed-description" placeholder="Describe what changed in this edit version"></textarea>
                     </div>
 
                     <p class="step-note" th:if="${!editingMode}">Dataset title is auto-generated from the first selected file. You can rename it later from dataset details.</p>

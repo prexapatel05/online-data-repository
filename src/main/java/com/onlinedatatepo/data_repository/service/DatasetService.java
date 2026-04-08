@@ -210,7 +210,7 @@ public class DatasetService {
     }
 
     public List<DatasetTable> getTablesByDatasetId(Integer datasetId) {
-        return datasetTableRepository.findByDataset_DatasetId(datasetId);
+        return datasetTableRepository.findByDataset_DatasetIdOrderByTableIdAsc(datasetId);
     }
 
     public Dataset updateAccessLevel(Dataset dataset, AccessLevel accessLevel) {

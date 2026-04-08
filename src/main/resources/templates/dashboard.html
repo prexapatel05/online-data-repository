@@ -79,7 +79,6 @@
                                     <span th:text="${datasetStats[dataset.datasetId].viewCount}">0</span>
                                 </span>
                                 <span style="font-size: 0.85rem; color: #666;" th:if="${datasetStats[dataset.datasetId]}">
-                                    <i data-lucide="file" style="width: 14px; height: 14px; display: inline;"></i>
                                     <span th:text="${datasetStats[dataset.datasetId].fileType}">CSV</span>
                                 </span>
                             </div>
@@ -93,7 +92,6 @@
                         <div class="dataset-card-footer">
                             <div class="dataset-stats">
                                 <span><i data-lucide="download"></i> <span th:if="${datasetStats[dataset.datasetId]}" th:text="${datasetStats[dataset.datasetId].downloadCount}">0</span><span th:unless="${datasetStats[dataset.datasetId]}">--</span></span>
-                                <span><i data-lucide="hard-drive"></i> --</span>
                                 <span><i data-lucide="calendar"></i> <span th:text="${#temporals.format(dataset.createdAt, 'MMM dd')}">Jan 01</span></span>
                             </div>
                             <span class="dataset-author">by <strong th:text="${dataset.user.fullName != null ? dataset.user.fullName : dataset.user.username}">Author</strong></span>
@@ -129,6 +127,7 @@
                                     <div class="activity-text">
                                         <strong th:text="${log.user != null ? log.user.fullName : 'System'}"></strong>
                                         <span th:text="${log.action}"> performed action</span>
+                                        <span th:if="${log.dataset != null}" th:text="${' on ' + log.dataset.name}"></span>
                                     </div>
                                     <span class="activity-time" th:text="${#temporals.format(log.timestamp, 'MMM dd, HH:mm')}">Mar 01, 12:00</span>
                                 </div>

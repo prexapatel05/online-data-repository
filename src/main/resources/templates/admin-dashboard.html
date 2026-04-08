@@ -147,7 +147,14 @@
                         </div>
                         <div class="form-group" style="margin:0;">
                             <label for="action">Action</label>
-                            <input id="action" name="action" th:value="${selectedAction}" placeholder="DATASET_VIEWED">
+                            <select id="action" name="action">
+                                <option value="" th:selected="${selectedAction == null || selectedAction.isBlank()}">All actions</option>
+                                <option value="DATASET_VIEWED" th:selected="${selectedAction == 'DATASET_VIEWED'}">DATASET_VIEWED</option>
+                                <option value="DATASET_DOWNLOADED" th:selected="${selectedAction == 'DATASET_DOWNLOADED'}">DATASET_DOWNLOADED</option>
+                                <option value="DATASET_UPDATED" th:selected="${selectedAction == 'DATASET_UPDATED'}">DATASET_UPDATED</option>
+                                <option value="QUERY_EXECUTED" th:selected="${selectedAction == 'QUERY_EXECUTED'}">QUERY_EXECUTED</option>
+                                <option value="QUERY_EXPORTED" th:selected="${selectedAction == 'QUERY_EXPORTED'}">QUERY_EXPORTED</option>
+                            </select>
                         </div>
                         <div class="form-group" style="margin:0;">
                             <label for="startDate">Start Date</label>

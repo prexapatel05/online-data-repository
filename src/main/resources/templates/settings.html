@@ -38,8 +38,8 @@
 
                     <div class="form-group" style="margin-top: 12px;">
                         <label for="email">Email</label>
-                        <input id="email" type="email" th:field="*{email}" required>
-                        <p class="field-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></p>
+                        <input id="email" type="email" th:value="${user.email}" readonly disabled>
+                        <p class="step-note">Email cannot be changed from settings.</p>
                     </div>
 
                     <div class="upload-actions" style="margin-top:16px;">
