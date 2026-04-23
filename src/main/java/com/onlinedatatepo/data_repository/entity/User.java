@@ -16,7 +16,7 @@ import java.util.List;
  * Maps to the "users" table in PostgreSQL.
  * Each user can:
  * - Upload and manage datasets
- * - Rate, comment, and bookmark datasets
+ * - Rate and comment on datasets
  * - Receive notifications
  * - Have an audit trail of their actions
  */
@@ -61,9 +61,6 @@ public class User {
     // Relationships
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Dataset> datasets;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<Bookmark> bookmarks;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Rating> ratings;

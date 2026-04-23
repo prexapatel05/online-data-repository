@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
  * - Dataset upload/modification
  * - Dataset deletion
  * - Comment posted
- * - Rating/Bookmark actions
+ * - Rating actions
  * 
  * Note: user_id and dataset_id are nullable (set to NULL on user/dataset deletion).
  */
